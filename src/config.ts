@@ -19,6 +19,9 @@ const esquema = z
     DATABASE_URL: z.url({ message: 'DATABASE_URL debe ser una URL postgres://' }),
     ORIGENES_PERMITIDOS: listaSeparadaPorComas,
     COOKIE_SECRETO: z.string().min(32, 'COOKIE_SECRETO necesita al menos 32 caracteres').optional(),
+    /* Dominio padre para compartir la cookie entre api. y www. (".evelinedublan.com").
+       Sin valor, la cookie es solo del host de la API. */
+    COOKIE_DOMINIO: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     CORREO_REMITENTE: z.string().optional(),
     CORREO_ADMIN: z.email().optional(),

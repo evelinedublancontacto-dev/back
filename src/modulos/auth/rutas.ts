@@ -22,6 +22,7 @@ export const rutasAuth = new Elysia({ prefix: '/auth', tags: ['Auth'] })
         sameSite: 'lax',
         path: '/',
         maxAge: DURACION_SESION_MS / 1000,
+        ...(config.COOKIE_DOMINIO ? { domain: config.COOKIE_DOMINIO } : {}),
       });
       void registrar({ usuario, ip }, 'entrar', 'usuario', usuario.id);
       return { usuario: usuario.publico() };
@@ -35,7 +36,7 @@ export const rutasAuth = new Elysia({ prefix: '/auth', tags: ['Auth'] })
     '/salir',
     async ({ cookie, usuario, actor, tokenSesion }) => {
       await cerrarSesion(tokenSesion);
-      cookie[NOMBRE_COOKIE]?.remove();
+      cookie[NOMBRE_COOKIE]?.remove(config.COOKIE_DOMINIO ? { domain: config.COOKIE_DOMINIO, path: '/' } : { path: '/' });
       if (usuario) void registrar(actor, 'salir', 'usuario', usuario.id);
       return { ok: true };
     },
