@@ -23,12 +23,32 @@ Comprobar: http://localhost:3001/salud · documentación: http://localhost:3001/
     bun run migrar:pendientes   listar sin aplicar
     bun run migrar:crear nombre generar archivo de migración
     bun run semillas            servicios y horarios iniciales (idempotente)
+    bun run semillas:admin correo contraseña ["Nombre"]
+                                crear administrador o cambiarle la contraseña
 
 ## API pública (v1)
 
     GET  /v1/servicios                        activos, en orden
     GET  /v1/disponibilidad?fecha&servicio    bloques del día
     POST /v1/citas                            reservar; 409 horario_ocupado si el bloque se acaba de tomar
+
+## Auth y administración
+
+    POST /v1/auth/entrar   { correo, contrasena }  deja cookie `sesion` httpOnly
+    POST /v1/auth/salir
+    GET  /v1/auth/yo
+
+    /v1/admin/citas        GET (filtros estado, desde, hasta, paginado) · POST · GET/PATCH/DELETE /:id
+    /v1/admin/servicios    GET · POST · PATCH/DELETE /:id
+    /v1/admin/horarios     GET · POST · PATCH/DELETE /:id
+    /v1/admin/bloqueos     GET · POST · DELETE /:id
+    /v1/admin/clientes     GET (?q=) · POST · GET/PATCH/DELETE /:id
+    /v1/admin/bitacora     GET
+
+Todo `/v1/admin` exige sesión de administrador; sin ella responde 401 antes
+de validar el cuerpo. Contraseñas con argon2id (`Bun.password`); en la base
+se guarda el HMAC del token de sesión, nunca el token. Cada escritura del
+admin queda en `bitacora`, una tabla que un trigger vuelve inmutable.
 
 La doble reserva la impide un índice único parcial en la tabla `citas`
 (`fecha, hora` donde el estado es pendiente o confirmada), no el código.
@@ -49,7 +69,8 @@ a quedar libre sin borrar historial.
       modelos/            Sequelize; index.ts declara asociaciones
       modulos/            una carpeta por recurso: rutas, servicio, esquemas
       servicios/          agenda.ts (cálculo puro), fechas.ts (CDMX), correo.ts (Resend)
-      middleware/         rateLimit.ts
+      middleware/         rateLimit.ts, sesion.ts (conSesion, soloAdmin)
+    scripts/crear-admin.ts primer administrador
     scripts/migrar.ts     CLI de migraciones
     tests/                bun test
 

@@ -15,11 +15,11 @@ export function obtenerIP(request: Request, server: Server<unknown> | null): str
   return server?.requestIP(request)?.address ?? 'local';
 }
 
-export function crearLimitador(nombre: string, limite: number, ventanaMs: number) {
+export function crearLimitador(nombre: string, limite: number, ventanaMs: number, opciones: { activoEnPruebas?: boolean } = {}) {
   const golpes = new Map<string, number[]>();
 
   return function verificar(clave: string) {
-    if (config.ENTORNO === 'prueba') return;
+    if (config.ENTORNO === 'prueba' && !opciones.activoEnPruebas) return;
     const ahora = Date.now();
     const previos = (golpes.get(clave) ?? []).filter((t) => ahora - t < ventanaMs);
     previos.push(ahora);

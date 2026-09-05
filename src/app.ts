@@ -14,6 +14,8 @@ import { ErrorHttp } from './errores';
 import { rutasServicios } from './modulos/servicios/rutas';
 import { rutasDisponibilidad } from './modulos/disponibilidad/rutas';
 import { rutasCitas } from './modulos/citas/rutas';
+import { rutasAuth } from './modulos/auth/rutas';
+import { rutasAdmin } from './modulos/admin/index';
 
 export function crearApp() {
   return new Elysia()
@@ -70,7 +72,7 @@ export function crearApp() {
       },
       { detail: { tags: ['Sistema'], summary: 'Estado del servicio y de la base de datos' } },
     )
-    .group('/v1', (v1) => v1.use(rutasServicios).use(rutasDisponibilidad).use(rutasCitas));
+    .group('/v1', (v1) => v1.use(rutasServicios).use(rutasDisponibilidad).use(rutasCitas).use(rutasAuth).use(rutasAdmin));
 }
 
 export type App = ReturnType<typeof crearApp>;
