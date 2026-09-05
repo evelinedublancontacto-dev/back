@@ -36,7 +36,14 @@ export const rutasAuth = new Elysia({ prefix: '/auth', tags: ['Auth'] })
     '/salir',
     async ({ cookie, usuario, actor, tokenSesion }) => {
       await cerrarSesion(tokenSesion);
-      cookie[NOMBRE_COOKIE]?.remove(config.COOKIE_DOMINIO ? { domain: config.COOKIE_DOMINIO, path: '/' } : { path: '/' });
+      const c = cookie[NOMBRE_COOKIE];
+      if (c) {
+        /* Para que el navegador borre la cookie, los atributos deben coincidir
+           con los que tenía al crearse. */
+        if (config.COOKIE_DOMINIO) c.domain = config.COOKIE_DOMINIO;
+        c.path = '/';
+        c.remove();
+      }
       if (usuario) void registrar(actor, 'salir', 'usuario', usuario.id);
       return { ok: true };
     },
