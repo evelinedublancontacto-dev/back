@@ -8,6 +8,7 @@ import { Cita } from './Cita';
 import { Usuario } from './Usuario';
 import { Sesion } from './Sesion';
 import { Bitacora } from './Bitacora';
+import { Post } from './Post';
 
 Cita.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 Cita.belongsTo(Servicio, { foreignKey: 'servicio_id', as: 'servicio' });
@@ -16,5 +17,5 @@ Servicio.hasMany(Cita, { foreignKey: 'servicio_id', as: 'citas' });
 Sesion.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
 Usuario.hasMany(Sesion, { foreignKey: 'usuario_id', as: 'sesiones' });
 
-export { Servicio, Horario, Bloqueo, Cliente, Cita, Usuario, Sesion, Bitacora };
+export { Servicio, Horario, Bloqueo, Cliente, Cita, Usuario, Sesion, Bitacora, Post };
 export type { ReglasServicio } from './Servicio';

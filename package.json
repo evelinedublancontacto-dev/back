@@ -14,7 +14,8 @@
     "migrar:crear": "bun scripts/migrar.ts crear",
     "migrar:pendientes": "bun scripts/migrar.ts pendientes",
     "semillas": "bun scripts/semillas.ts",
-    "semillas:admin": "bun scripts/crear-admin.ts"
+    "semillas:admin": "bun scripts/crear-admin.ts",
+    "migrar:pocketbase": "bun scripts/migrar-pocketbase.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",

@@ -55,7 +55,7 @@ cursos, meditaciones y Luz de Luna (estáticos, sin servidor).
 | D4 | Imágenes de posts | Seguir guardando URL en v1 | Hoy el admin pega una URL, no sube archivo. Subida a S3/R2 en v2 |
 | D5 | Hosting | **Decidido:** Railway: servicio Bun + Postgres | Ya hay cuenta; dominio `api.evelinedublan.com` |
 | D6 | Integración front-back | El front llama al back directo con `credentials: include`; CORS con lista de orígenes | Con `api.` en el mismo sitio, la cookie funciona con `SameSite=Lax` |
-| D7 | Migración de datos | Script que exporta PocketBase e importa a Postgres | Posts, citas, servicios, clientes. Posts también desde la semilla de WordPress |
+| D7 | Migración de datos | Script que exporta PocketBase e importa a Postgres | Posts, citas, servicios, clientes. Posts también desde la semilla de WordPress (16 artículos) |
 | D8 | Repositorios | Back en `evelinedublancontacto-dev/back`; cambios de front en su repo | Se despliegan por separado |
 
 ## 4. Arquitectura

@@ -25,12 +25,37 @@ Comprobar: http://localhost:3001/salud · documentación: http://localhost:3001/
     bun run semillas            servicios y horarios iniciales (idempotente)
     bun run semillas:admin correo contraseña ["Nombre"]
                                 crear administrador o cambiarle la contraseña
+    bun run migrar:pocketbase   exportar PocketBase e importar (ver abajo)
 
 ## API pública (v1)
 
     GET  /v1/servicios                        activos, en orden
     GET  /v1/disponibilidad?fecha&servicio    bloques del día
     POST /v1/citas                            reservar; 409 horario_ocupado si el bloque se acaba de tomar
+
+## Blog
+
+    GET /v1/posts?categoria&pagina&por_pagina   publicados, sin contenido
+    GET /v1/posts/:slug                          con contenido y dos relacionados
+    /v1/admin/posts                              GET (?q=) · POST · GET/PATCH/DELETE /:id
+
+Los campos salen con los nombres que ya usa el front (`title`, `slug`,
+`excerpt`, `content`, `image`, `category`, `published`, `date`); en la tabla
+van en español. La semilla carga los 16 artículos exportados de WordPress.
+
+## Migración desde PocketBase
+
+    PB_URL=https://eveline-dublan.pockethost.io PB_EMAIL=... PB_PASSWORD=... \
+      bun run migrar:pocketbase [-- --solo-exportar]
+
+Exporta `servicios`, `horarios_disponibles`, `users`, `posts` y `citas` a
+`exportaciones/` (fuera de git) y los importa en ese orden. Es re-ejecutable:
+servicios por slug, posts por slug (PocketBase pisa la semilla de WordPress),
+clientes por correo, citas por cliente + fecha + hora + servicio. El estado
+`disponible` pasa a `pendiente`. Si dos citas vivas chocan en fecha y hora,
+la segunda entra como cancelada y aparece en el reporte final. Los
+administradores no se migran: sus hashes no son portables; se crean con
+`semillas:admin`.
 
 ## Auth y administración
 
@@ -68,9 +93,11 @@ a quedar libre sin borrar historial.
         semillas/         datos iniciales
       modelos/            Sequelize; index.ts declara asociaciones
       modulos/            una carpeta por recurso: rutas, servicio, esquemas
+                          admin/ agrupa lo que exige sesión
       servicios/          agenda.ts (cálculo puro), fechas.ts (CDMX), correo.ts (Resend)
       middleware/         rateLimit.ts, sesion.ts (conSesion, soloAdmin)
-    scripts/crear-admin.ts primer administrador
+    scripts/crear-admin.ts        primer administrador
+    scripts/migrar-pocketbase.ts  exportación e importación desde PocketBase
     scripts/migrar.ts     CLI de migraciones
     tests/                bun test
 

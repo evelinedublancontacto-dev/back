@@ -171,11 +171,11 @@ Rutas: `GET /v1/posts` (publicados, orden por `publicado_en` desc, paginado)
 y `GET /v1/posts/:slug`; admin CRUD en `/v1/admin/posts` con generación de
 slug si falta y validación de unicidad.
 
-Semilla: los 20 posts de `src/data/wordpressBlogPosts.json` del front, que
+Semilla: los 16 posts de `src/data/wordpressBlogPosts.json` del front, que
 hoy son la mayoría del contenido. El único post que vive en PocketBase entra
 en F5.
 
-Terminado cuando: `/v1/posts` devuelve los 20 publicados y el admin puede
+Terminado cuando: `/v1/posts` devuelve los 16 publicados y el admin puede
 crear, editar, despublicar y borrar.
 
 ---

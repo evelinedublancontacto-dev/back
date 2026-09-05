@@ -11,18 +11,9 @@ import { soloAdmin } from '../../middleware/sesion';
 import { ErrorHttp } from '../../errores';
 import { registrar } from '../../servicios/bitacora';
 import { esFechaISO, esHora } from '../../servicios/fechas';
+import { aSlug } from '../../servicios/slug';
 
 const HORA = t.String({ pattern: '^\\d{2}:\\d{2}$' });
-
-export function aSlug(texto: string) {
-  return texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
 
 const reglas = t.Optional(
   t.Object({
