@@ -27,10 +27,11 @@ cursos, meditaciones y Luz de Luna (estáticos, sin servidor).
 
 ## 2. Problemas encontrados que el back debe resolver
 
-1. **Seguridad.** `GET /api/citas` devuelve todas las citas con nombre, correo
-   y teléfono sin pedir sesión. `PATCH` y `DELETE` tampoco la piden: cualquiera
-   puede leer, alterar o borrar citas. El panel `/admin` solo se protege en el
-   navegador.
+1. **Seguridad.** Las rutas `/api/citas` (`GET`, `PATCH`, `DELETE`) no piden
+   sesión. Hoy lo único que impide leer, alterar o borrar citas desde fuera
+   son las reglas de PocketBase, que están cerradas a anónimos; pero esas
+   mismas reglas rompen las llamadas del propio admin, que usa esas rutas
+   sin autenticarse. El panel `/admin` solo se protege en el navegador.
 2. **Doble fuente de servicios.** El público lee `services.json`; el admin
    edita la colección `servicios`. Lo que se cambia en el admin no llega a la
    página de reservas.
@@ -48,11 +49,11 @@ cursos, meditaciones y Luz de Luna (estáticos, sin servidor).
 
 | # | Decisión | Recomendación | Por qué |
 |---|---|---|---|
-| D1 | Alcance | Sustituir PocketBase por completo en v1 | El sistema es pequeño; dejar dos backends a medias duplica auth y mantenimiento |
+| D1 | Alcance | **Decidido:** sustituir PocketBase por completo en v1 | El sistema es pequeño; dejar dos backends a medias duplica auth y mantenimiento |
 | D2 | Framework HTTP | Elysia | Nativo de Bun, validación con TypeBox, OpenAPI incluido |
 | D3 | Auth | Cookie de sesión httpOnly + `Bun.password` (argon2id) | Sin librerías extra; sesiones revocables en BD |
 | D4 | Imágenes de posts | Seguir guardando URL en v1 | Hoy el admin pega una URL, no sube archivo. Subida a S3/R2 en v2 |
-| D5 | Hosting | Railway: servicio Bun + Postgres | Ya hay cuenta; dominio `api.evelinedublan.com` |
+| D5 | Hosting | **Decidido:** Railway: servicio Bun + Postgres | Ya hay cuenta; dominio `api.evelinedublan.com` |
 | D6 | Integración front-back | El front llama al back directo con `credentials: include`; CORS con lista de orígenes | Con `api.` en el mismo sitio, la cookie funciona con `SameSite=Lax` |
 | D7 | Migración de datos | Script que exporta PocketBase e importa a Postgres | Posts, citas, servicios, clientes. Posts también desde la semilla de WordPress |
 | D8 | Repositorios | Back en `evelinedublancontacto-dev/back`; cambios de front en su repo | Se despliegan por separado |
@@ -141,6 +142,8 @@ Documentación OpenAPI generada en `/docs`.
 - Etiquetas de estado: `disponible` → `pendiente`.
 
 ## 8. Fases y criterio de terminado
+
+El desglose tarea por tarea de cada fase está en `FASES.md`.
 
 | Fase | Contenido | Terminado cuando | Estimación |
 |---|---|---|---|
