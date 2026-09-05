@@ -10,6 +10,10 @@ import { openapi } from '@elysiajs/openapi';
 import { config } from './config';
 import { sequelize } from './db/sequelize';
 import paquete from '../package.json';
+import { ErrorHttp } from './errores';
+import { rutasServicios } from './modulos/servicios/rutas';
+import { rutasDisponibilidad } from './modulos/disponibilidad/rutas';
+import { rutasCitas } from './modulos/citas/rutas';
 
 export function crearApp() {
   return new Elysia()
@@ -29,6 +33,10 @@ export function crearApp() {
       }),
     )
     .onError(({ code, error, set }) => {
+      if (error instanceof ErrorHttp) {
+        set.status = error.status;
+        return { error: error.message, codigo: error.codigo };
+      }
       if (code === 'VALIDATION') {
         set.status = 400;
         return {
@@ -61,7 +69,8 @@ export function crearApp() {
         return { estado: 'ok', bd, version: paquete.version, entorno: config.ENTORNO };
       },
       { detail: { tags: ['Sistema'], summary: 'Estado del servicio y de la base de datos' } },
-    );
+    )
+    .group('/v1', (v1) => v1.use(rutasServicios).use(rutasDisponibilidad).use(rutasCitas));
 }
 
 export type App = ReturnType<typeof crearApp>;

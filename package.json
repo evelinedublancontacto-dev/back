@@ -12,7 +12,8 @@
     "migrar": "bun scripts/migrar.ts up",
     "migrar:deshacer": "bun scripts/migrar.ts down",
     "migrar:crear": "bun scripts/migrar.ts crear",
-    "migrar:pendientes": "bun scripts/migrar.ts pendientes"
+    "migrar:pendientes": "bun scripts/migrar.ts pendientes",
+    "semillas": "bun scripts/semillas.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
