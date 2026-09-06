@@ -30,6 +30,13 @@ const esquema = z
     CORREO_REMITENTE: z.string().optional(),
     CORREO_ADMIN: z.email().optional(),
     MIGRAR_AL_ARRANCAR: z.enum(['si', 'no']).default('si'),
+    /* Semillas idempotentes (servicios, horarios, posts) al arrancar. */
+    SEMILLAS_AL_ARRANCAR: z.enum(['si', 'no']).default('no'),
+    /* Primer administrador: se crea al arrancar solo si ese correo no existe.
+       Pensado para el primer despliegue; después conviene quitar la contraseña
+       de las variables. */
+    ADMIN_INICIAL_CORREO: z.email().optional(),
+    ADMIN_INICIAL_CONTRASENA: z.string().min(10).optional(),
     SQL_LOG: z.enum(['si', 'no']).default('no'),
   })
   .superRefine((v, ctx) => {
