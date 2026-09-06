@@ -22,6 +22,10 @@ const esquema = z
     /* Dominio padre para compartir la cookie entre api. y www. (".evelinedublan.com").
        Sin valor, la cookie es solo del host de la API. */
     COOKIE_DOMINIO: z.string().optional(),
+    /* lax cuando front y back comparten sitio (api. y www. del mismo dominio);
+       none cuando viven en dominios distintos, como los *.up.railway.app.
+       Con none la cookie sale siempre con Secure. */
+    COOKIE_SAMESITE: z.enum(['lax', 'none']).default('lax'),
     RESEND_API_KEY: z.string().optional(),
     CORREO_REMITENTE: z.string().optional(),
     CORREO_ADMIN: z.email().optional(),
@@ -30,10 +34,10 @@ const esquema = z
   })
   .superRefine((v, ctx) => {
     if (v.ENTORNO !== 'produccion') return;
-    for (const clave of ['COOKIE_SECRETO', 'RESEND_API_KEY', 'CORREO_REMITENTE', 'CORREO_ADMIN'] as const) {
-      if (!v[clave]) {
-        ctx.addIssue({ code: 'custom', path: [clave], message: `${clave} es obligatoria en producción` });
-      }
+    /* Solo el secreto de cookie es indispensable para arrancar: sin correo
+       el sitio funciona, solo deja de avisar (y lo dice en el log). */
+    if (!v.COOKIE_SECRETO) {
+      ctx.addIssue({ code: 'custom', path: ['COOKIE_SECRETO'], message: 'COOKIE_SECRETO es obligatoria en producción' });
     }
   });
 
@@ -56,9 +60,12 @@ if (!resultado.success) {
 export const config = resultado.data;
 export type Config = typeof config;
 
-if (config.ENTORNO === 'desarrollo') {
-  const faltantes = (['COOKIE_SECRETO', 'RESEND_API_KEY', 'CORREO_ADMIN'] as const).filter((k) => !config[k]);
+{
+  const faltantes = (['RESEND_API_KEY', 'CORREO_REMITENTE', 'CORREO_ADMIN'] as const).filter((k) => !config[k]);
   if (faltantes.length) {
-    console.warn(`Aviso: sin ${faltantes.join(', ')}. Sesiones y correos no funcionarán hasta configurarlas.`);
+    console.warn(`Aviso: sin ${faltantes.join(', ')}. Los correos de confirmación no saldrán hasta configurarlas.`);
+  }
+  if (config.ENTORNO === 'desarrollo' && !config.COOKIE_SECRETO) {
+    console.warn('Aviso: sin COOKIE_SECRETO; los tokens de sesión se hashean sin secreto.');
   }
 }

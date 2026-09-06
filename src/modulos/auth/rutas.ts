@@ -18,8 +18,8 @@ export const rutasAuth = new Elysia({ prefix: '/auth', tags: ['Auth'] })
       cookie[NOMBRE_COOKIE]!.set({
         value: token,
         httpOnly: true,
-        secure: config.ENTORNO === 'produccion',
-        sameSite: 'lax',
+        secure: config.ENTORNO === 'produccion' || config.COOKIE_SAMESITE === 'none',
+        sameSite: config.COOKIE_SAMESITE,
         path: '/',
         maxAge: DURACION_SESION_MS / 1000,
         ...(config.COOKIE_DOMINIO ? { domain: config.COOKIE_DOMINIO } : {}),
