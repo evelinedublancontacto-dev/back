@@ -1,11 +1,14 @@
 # Fases de construcción, tarea por tarea
 
-> **Estado (5 sep 2026):** F1 a F5 terminadas y en `main` de este repo. F6
-> terminada en la rama `back-propio` del repo `front`, probada de punta a
-> punta en local, pendiente de fusionar. F7 (despliegue y corte) no se ha
-> iniciado: necesita credenciales de Resend, superusuario de PocketBase para
-> la migración de datos, y decidir el proyecto de Railway y el dominio.
-
+> **Estado (6 sep 2026):** F1 a F6 terminadas y fusionadas en `main` de
+> ambos repos. F7 levantada en Railway, proyecto `superb-gratitude`: Postgres,
+> `back` (https://back-production-f9c3.up.railway.app) y `front`
+> (https://front-production-d2fa.up.railway.app), con semillas cargadas y
+> administrador creado. Pendiente del corte: credenciales de Resend, migración
+> de datos desde PocketBase (necesita superusuario), dominios propios
+> (`api.` y `www.` de evelinedublan.com) para que la cookie del panel sea
+> SameSite=Lax y funcione también en Safari, y activar el autodespliegue del
+> back desde GitHub (hoy se despliega con `railway up`).
 Complementa a `PLAN.md`. Cada fase termina con un commit en este repositorio
 (o en el del front, en F6) y con los criterios de terminado cumplidos. Las
 decisiones ya tomadas: alcance completo (PocketBase se apaga al final),

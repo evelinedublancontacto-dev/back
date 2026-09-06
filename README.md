@@ -106,3 +106,14 @@ a quedar libre sin borrar historial.
 Nombres en español como en el front. Respuestas `{ ...datos }` en éxito y
 `{ error, codigo }` en fallo. Fechas de agenda como `AAAA-MM-DD` y `HH:MM`,
 siempre en hora de la Ciudad de México.
+
+## Despliegue actual (Railway)
+
+Proyecto `superb-gratitude`, entorno `production`: servicios `Postgres`,
+`back` y `front`. El back se despliega con `railway up --service back` desde
+esta carpeta (la conexión a GitHub no dejó disparador automático). Variables
+del back: `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `ENTORNO=produccion`,
+`PUERTO=3001`, `COOKIE_SECRETO`, `COOKIE_SAMESITE=none` (front y back en
+dominios distintos), `ORIGENES_PERMITIDOS` con el dominio del front,
+`SEMILLAS_AL_ARRANCAR=si`. Cuando haya dominios propios bajo el mismo sitio,
+pasar `COOKIE_SAMESITE=lax` y fijar `COOKIE_DOMINIO`.
