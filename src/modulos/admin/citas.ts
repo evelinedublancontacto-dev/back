@@ -73,6 +73,7 @@ export const adminCitas = new Elysia({ prefix: '/citas', tags: ['Admin · Citas'
         hora: body.hora,
         estado: body.estado ?? 'confirmada',
         notas: body.notas ?? '',
+        primera_cita: body.primeraCita ?? false,
         origen: 'admin',
       }).catch(conflictoHorario);
       const completa = await cargar(cita.id);
@@ -90,6 +91,7 @@ export const adminCitas = new Elysia({ prefix: '/citas', tags: ['Admin · Citas'
         hora: t.String(),
         estado: t.Optional(t.Union(ESTADOS_CITA.map((e) => t.Literal(e)))),
         notas: t.Optional(t.String()),
+        primeraCita: t.Optional(t.Boolean()),
       }),
       detail: { summary: 'Crear una cita a mano (por defecto confirmada)' },
     },
@@ -111,6 +113,7 @@ export const adminCitas = new Elysia({ prefix: '/citas', tags: ['Admin · Citas'
           ...(body.hora !== undefined ? { hora: body.hora } : {}),
           ...(body.notas !== undefined ? { notas: body.notas } : {}),
           ...(body.servicio !== undefined ? { servicio_id: body.servicio } : {}),
+          ...(body.primeraCita !== undefined ? { primera_cita: body.primeraCita } : {}),
         })
         .catch(conflictoHorario);
       if (body.nombre !== undefined || body.telefono !== undefined) {
@@ -132,6 +135,7 @@ export const adminCitas = new Elysia({ prefix: '/citas', tags: ['Admin · Citas'
         servicio: t.Optional(t.String()),
         nombre: t.Optional(t.String({ minLength: 2 })),
         telefono: t.Optional(t.String({ minLength: 7 })),
+        primeraCita: t.Optional(t.Boolean()),
       }),
       detail: { summary: 'Cambiar estado o datos de una cita' },
     },

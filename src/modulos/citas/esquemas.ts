@@ -8,6 +8,8 @@ export const cuerpoNuevaCita = t.Object({
   fecha: t.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}$' }),
   hora: t.String({ pattern: '^\\d{2}:\\d{2}$' }),
   notas: t.Optional(t.String({ maxLength: 2000 })),
+  /** true = primera cita con Eveline (lleva indicaciones de depósito en el correo). */
+  primeraCita: t.Boolean(),
   /** Campo trampa: invisible para personas. Si llega lleno, es un bot. */
   sitioWeb: t.Optional(t.String()),
 });

@@ -58,7 +58,38 @@ export type DetalleCita = {
   hora: string;
   modalidad?: ModalidadAtencion;
   notas?: string;
+  /** Primera cita con Eveline: lleva las indicaciones de depósito y puntualidad. */
+  primeraCita?: boolean;
+  /** Último día para depositar, ya en texto largo. Solo se usa si primeraCita. */
+  limiteDeposito?: string;
 };
+
+/** Indicaciones que Eveline manda en la primera cita. `{limite}` se sustituye. */
+export const INDICACIONES_PRIMERA_CITA: Array<{ icono: string; texto: string }> = [
+  { icono: '💡', texto: 'Te recordamos que esta cita será confirmada con tu depósito, que puedes realizar desde hoy y hasta el {limite}. En caso de no realizarse el depósito en los días indicados, se liberará el horario para otro paciente.' },
+  { icono: '‼️', texto: 'No realices el depósito fuera del tiempo estipulado. Aunque lo realices, ya no nos será posible darte el día y horario previamente pactado.' },
+  { icono: '📩', texto: 'El comprobante tendrá que ser compartido por este medio o por WhatsApp para su registro. En el concepto deberá ir el nombre del paciente.' },
+  { icono: '⏰', texto: 'Recuerda estar puntual en tu sesión: solo damos diez minutos de tolerancia. Pasado ese tiempo, la sesión se cancela y debe ser pagada.' },
+  { icono: '📜', texto: 'Ingresa a la sesión de Zoom con tu nombre.' },
+  { icono: '⚠️', texto: 'Si requieres cambiar el horario o el día, o cancelar (en esta y futuras sesiones), avisa con mínimo 24 horas de anticipación; de lo contrario se cobrará la cita.' },
+  { icono: '‼️', texto: 'Las citas SUBSECUENTES agendadas al final de tu sesión ya quedan confirmadas; no nos comunicaremos contigo para confirmarlas. Cada paciente adulto debe hacerse cargo de recordar sus citas y asistir o cancelar con tiempo.' },
+  { icono: '✨', texto: 'Cualquier duda, quedo al pendiente.' },
+];
+
+function indicacionesPrimeraCita(limite: string): { html: string; texto: string[] } {
+  const lineas = INDICACIONES_PRIMERA_CITA.map((i) => ({ icono: i.icono, texto: i.texto.replace('{limite}', limite) }));
+  const html = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-collapse:separate;background:#fff8e6;border:1px solid ${C.doradoClaro};border-radius:10px;">
+      <tr><td style="padding:18px 20px 6px;font-family:${FUENTE_TITULO};font-size:16px;font-weight:600;color:${C.texto};">✅ Por favor, lee completo (primera cita)</td></tr>
+      ${lineas
+        .map(
+          (l) => `<tr><td style="padding:6px 20px;font-family:${FUENTE_TEXTO};font-size:14px;line-height:1.6;color:${C.texto};">${l.icono} ${escaparHtml(l.texto)}</td></tr>`,
+        )
+        .join('')}
+      <tr><td style="padding:6px 20px 16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    </table>`;
+  return { html, texto: ['✅ Por favor, leer completo (primera cita):', '', ...lineas.map((l) => `${l.icono} ${l.texto}`)] };
+}
 
 export type CorreoListo = { asunto: string; texto: string; html: string };
 
@@ -163,6 +194,7 @@ function filasCita(d: DetalleCita, conCliente: boolean): Fila[] {
     filas.push({ etiqueta: 'Teléfono', valor: escaparHtml(d.telefono) });
   }
   filas.push({ etiqueta: 'Servicio', valor: escaparHtml(d.servicio) });
+  if (d.primeraCita !== undefined) filas.push({ etiqueta: 'Tipo', valor: d.primeraCita ? 'Primera cita' : 'Cita subsecuente' });
   filas.push({ etiqueta: 'Fecha', valor: escaparHtml(d.fechaLarga) });
   filas.push({ etiqueta: 'Hora', valor: `${escaparHtml(d.hora)} <span style="font-weight:400;color:${C.textoSuave};font-size:13px;">hora del centro de México</span>` });
   if (d.modalidad) filas.push({ etiqueta: 'Modalidad', valor: escaparHtml(ETIQUETA_MODALIDAD[d.modalidad]) });
@@ -174,6 +206,7 @@ function lineasTexto(d: DetalleCita, conCliente: boolean): string[] {
   return [
     ...(conCliente ? [`Cliente:   ${d.nombre}`, `Correo:    ${d.correo}`, `Teléfono:  ${d.telefono}`] : []),
     `Servicio:  ${d.servicio}`,
+    ...(d.primeraCita !== undefined ? [`Tipo:      ${d.primeraCita ? 'Primera cita' : 'Cita subsecuente'}`] : []),
     `Fecha:     ${d.fechaLarga}`,
     `Hora:      ${d.hora} (hora del centro de México)`,
     ...(d.modalidad ? [`Modalidad: ${ETIQUETA_MODALIDAD[d.modalidad]}`] : []),
@@ -184,12 +217,14 @@ function lineasTexto(d: DetalleCita, conCliente: boolean): string[] {
 /** Correo que recibe la persona que agendó. */
 export function correoCitaCliente(d: DetalleCita): CorreoListo {
   const asunto = `Recibimos tu solicitud: ${d.servicio}`;
+  const indicaciones = d.primeraCita ? indicacionesPrimeraCita(d.limiteDeposito ?? 'la fecha indicada por Eveline') : null;
   const cuerpo = `
     <p style="margin:0 0 16px;">Hola <strong>${escaparHtml(d.nombre)}</strong>,</p>
     <p style="margin:0 0 20px;">Gracias por confiar en este espacio. Recibimos tu solicitud de cita y estos son los datos:</p>
     ${tablaDetalle(filasCita(d, false))}
     <p style="margin:24px 0 20px;">Eveline la <strong>confirmará en breve</strong> por este medio o por WhatsApp. Si necesitas cambiarla, responde a este correo o escríbele directamente:</p>
     ${boton('Escribir por WhatsApp', WHATSAPP.url)}
+    ${indicaciones ? indicaciones.html : ''}
     <p style="margin:24px 0 0;font-size:14px;color:${C.textoSuave};">Recuerda: solo se puede tener una cita agendada a la vez, y la cita debe agendarla la persona que tomará la sesión.</p>`;
   const texto = [
     `Hola ${d.nombre},`,
@@ -200,6 +235,7 @@ export function correoCitaCliente(d: DetalleCita): CorreoListo {
     '',
     'Eveline la confirmará en breve por este medio o por WhatsApp.',
     `Si necesitas cambiarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
+    ...(indicaciones ? ['', ...indicaciones.texto] : []),
     '',
     `“${FRASE_EVELINE}”`,
     '— Eveline Dublán · www.evelinedublan.com',

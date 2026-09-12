@@ -54,6 +54,19 @@ export function fechaLarga(fecha: string): string {
   return formatoLargo.format(new Date(Date.UTC(a, m - 1, d)));
 }
 
+/** Suma (o resta) días a una fecha civil "AAAA-MM-DD". */
+export function sumarDias(fecha: string, dias: number): string {
+  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
+
+/** Último día para depositar: `dias` antes de la cita, pero nunca antes de hoy
+    (si la cita es pasado mañana o antes, el límite es hoy). */
+export function fechaLimiteDeposito(fechaCita: string, hoy: string, dias: number): string {
+  const limite = sumarDias(fechaCita, -dias);
+  return limite < hoy ? hoy : limite;
+}
+
 export function aMinutos(hora: string): number {
   const [h, m] = hora.split(':').map(Number) as [number, number];
   return h * 60 + m;

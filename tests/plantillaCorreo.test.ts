@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { correoCitaAdmin, correoCitaCliente, escaparHtml, FRASE_EVELINE, URL_LOGO } from '../src/servicios/plantillaCorreo';
-import { fechaLarga } from '../src/servicios/fechas';
+import { fechaLarga, fechaLimiteDeposito, sumarDias } from '../src/servicios/fechas';
 
 const DETALLE = {
   nombre: 'Ana <b>López</b>',
@@ -39,6 +39,28 @@ describe('plantilla de correo', () => {
     expect(html).toContain('771 143 91 16');
     expect(html).toContain('/admin/citas');
     expect(texto).toContain('Correo:    ana@ejemplo.test');
+  });
+});
+
+describe('primera cita', () => {
+  it('incluye las indicaciones y la fecha límite del depósito solo si es la primera', () => {
+    const primera = correoCitaCliente({ ...DETALLE, primeraCita: true, limiteDeposito: 'sábado, 19 de septiembre' });
+    expect(primera.html).toContain('Por favor, lee completo');
+    expect(primera.html).toContain('hasta el sábado, 19 de septiembre');
+    expect(primera.html).toContain('diez minutos de tolerancia');
+    expect(primera.html).toContain('Primera cita');
+    expect(primera.texto).toContain('✅ Por favor, leer completo');
+    const subsecuente = correoCitaCliente({ ...DETALLE, primeraCita: false });
+    expect(subsecuente.html).not.toContain('Por favor, lee completo');
+    expect(subsecuente.html).toContain('Cita subsecuente');
+  });
+});
+
+describe('fechaLimiteDeposito', () => {
+  it('es N días antes de la cita, pero nunca antes de hoy', () => {
+    expect(sumarDias('2026-03-01', -1)).toBe('2026-02-28');
+    expect(fechaLimiteDeposito('2026-09-21', '2026-09-11', 2)).toBe('2026-09-19');
+    expect(fechaLimiteDeposito('2026-09-12', '2026-09-11', 2)).toBe('2026-09-11');
   });
 });
 

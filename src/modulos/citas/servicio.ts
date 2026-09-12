@@ -4,7 +4,7 @@ import type { ModalidadAtencion } from '../../servicios/agenda';
 import { correoCitaAdmin, correoCitaCliente, ETIQUETA_MODALIDAD } from '../../servicios/plantillaCorreo';
 import { ESTADOS_VIVOS } from '../../modelos/Cita';
 import { ErrorHttp } from '../../errores';
-import { ahoraEnCDMX, esFechaISO, esHora, fechaLarga } from '../../servicios/fechas';
+import { ahoraEnCDMX, esFechaISO, esHora, fechaLarga, fechaLimiteDeposito } from '../../servicios/fechas';
 import { enviarCorreo } from '../../servicios/correo';
 import { config } from '../../config';
 import { disponibilidadDelDia } from '../disponibilidad/servicio';
@@ -129,6 +129,7 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita
       fecha: d.fecha,
       hora: d.hora,
       notas: d.notas?.trim() ?? '',
+      primera_cita: d.primeraCita,
       origen: 'web',
     });
   } catch (error) {
@@ -158,6 +159,9 @@ async function notificarReserva(cita: Cita, modalidad?: ModalidadAtencion) {
     hora: cita.hora.slice(0, 5),
     modalidad,
     notas: cita.notas,
+    primeraCita: cita.primera_cita,
+    /* Solo importa en la primera cita: hasta cuándo puede depositar. */
+    limiteDeposito: fechaLarga(fechaLimiteDeposito(cita.fecha, ahoraEnCDMX().fecha, config.DIAS_LIMITE_DEPOSITO)),
   };
 
   const alCliente = enviarCorreo({ para: c.correo, ...correoCitaCliente(detalle) });

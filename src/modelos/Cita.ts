@@ -26,6 +26,8 @@ export class Cita extends Model<InferAttributes<Cita>, InferCreationAttributes<C
   declare hora: string;
   declare estado: CreationOptional<EstadoCita>;
   declare notas: CreationOptional<string>;
+  /** Primera cita con Eveline (se confirma con depósito) o subsecuente. */
+  declare primera_cita: CreationOptional<boolean>;
   declare origen: CreationOptional<string>;
   declare creado_en: CreationOptional<Date>;
   declare actualizado_en: CreationOptional<Date>;
@@ -46,6 +48,7 @@ export class Cita extends Model<InferAttributes<Cita>, InferCreationAttributes<C
       hora: this.hora,
       estado: this.estado,
       notas: this.notas,
+      primeraCita: this.primera_cita,
       origen: this.origen,
       created: this.creado_en,
     };
@@ -61,6 +64,7 @@ Cita.init(
     hora: { type: DataTypes.TIME, allowNull: false },
     estado: { type: DataTypes.ENUM(...ESTADOS_CITA), allowNull: false, defaultValue: 'pendiente' },
     notas: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    primera_cita: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     origen: { type: DataTypes.STRING(40), allowNull: false, defaultValue: 'web' },
     creado_en: DataTypes.DATE,
     actualizado_en: DataTypes.DATE,

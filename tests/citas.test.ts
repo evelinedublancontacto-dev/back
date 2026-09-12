@@ -31,6 +31,7 @@ function reservar(extra: Record<string, unknown> = {}) {
         fecha: FECHA,
         hora: '10:00',
         notas: 'creada por bun test',
+        primeraCita: true,
         ...extra,
       }),
     }),
@@ -101,6 +102,11 @@ describe('POST /v1/citas', () => {
     const res = await reservar({ email: 'no-es-correo' });
     expect(res.status).toBe(400);
     expect(((await res.json()) as { codigo: string }).codigo).toBe('validacion');
+  });
+
+  it('exige decir si es primera cita o subsecuente', async () => {
+    const res = await reservar({ primeraCita: undefined });
+    expect(res.status).toBe(400);
   });
 
   it('un bot que llena el campo trampa recibe 201 y no guarda nada', async () => {

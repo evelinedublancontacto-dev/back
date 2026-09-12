@@ -29,6 +29,8 @@ const esquema = z
     RESEND_API_KEY: z.string().optional(),
     CORREO_REMITENTE: z.string().optional(),
     CORREO_ADMIN: z.email().optional(),
+    /* La primera cita se confirma con depósito hasta N días antes de la fecha. */
+    DIAS_LIMITE_DEPOSITO: z.coerce.number().int().min(0).default(2),
     MIGRAR_AL_ARRANCAR: z.enum(['si', 'no']).default('si'),
     /* Semillas idempotentes (servicios, horarios, posts) al arrancar. */
     SEMILLAS_AL_ARRANCAR: z.enum(['si', 'no']).default('no'),
