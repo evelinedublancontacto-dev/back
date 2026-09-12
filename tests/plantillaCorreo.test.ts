@@ -43,16 +43,39 @@ describe('plantilla de correo', () => {
 });
 
 describe('primera cita', () => {
-  it('incluye las indicaciones y la fecha límite del depósito solo si es la primera', () => {
+  it('incluye las indicaciones y la fecha límite del depósito', () => {
     const primera = correoCitaCliente({ ...DETALLE, primeraCita: true, limiteDeposito: 'sábado, 19 de septiembre' });
-    expect(primera.html).toContain('Por favor, lee completo');
+    expect(primera.asunto).toBe('Recibimos tu solicitud: Sesión de Psicoterapia');
+    expect(primera.html).toContain('Por favor, lee completo (primera cita)');
     expect(primera.html).toContain('hasta el sábado, 19 de septiembre');
     expect(primera.html).toContain('diez minutos de tolerancia');
     expect(primera.html).toContain('Primera cita');
-    expect(primera.texto).toContain('✅ Por favor, leer completo');
-    const subsecuente = correoCitaCliente({ ...DETALLE, primeraCita: false });
-    expect(subsecuente.html).not.toContain('Por favor, lee completo');
-    expect(subsecuente.html).toContain('Cita subsecuente');
+    expect(primera.html).toContain('confirmará en breve');
+    expect(primera.texto).toContain('✅ Por favor, leer completo (primera cita)');
+  });
+});
+
+describe('cita subsecuente', () => {
+  it('se anuncia como confirmada y lleva sus propias indicaciones, sin depósito', () => {
+    const { html, texto, asunto } = correoCitaCliente({ ...DETALLE, primeraCita: false, limiteDeposito: 'sábado, 19 de septiembre' });
+    expect(asunto).toBe('Tu cita quedó agendada: Sesión de Psicoterapia');
+    expect(html).toContain('Tu cita subsecuente está confirmada');
+    expect(html).toContain('Por favor, lee completo (cita subsecuente)');
+    expect(html).toContain('Cita subsecuente');
+    expect(html).toContain('antes de la cita');
+    expect(html).toContain('diez minutos de tolerancia');
+    expect(html).not.toContain('confirmará en breve');
+    expect(html).not.toContain('depósito');
+    expect(html).not.toContain('sábado, 19 de septiembre');
+    expect(texto).toContain('✅ Por favor, leer completo (cita subsecuente)');
+    expect(texto).toContain('ya está confirmada');
+  });
+
+  it('a Eveline le avisa que la persona ya la da por confirmada', () => {
+    const { asunto, html, texto } = correoCitaAdmin({ ...DETALLE, primeraCita: false });
+    expect(asunto).toContain('Nueva cita subsecuente');
+    expect(html).toContain('ya se le dijo que queda confirmada');
+    expect(texto).not.toContain('<strong>');
   });
 });
 

@@ -76,11 +76,22 @@ export const INDICACIONES_PRIMERA_CITA: Array<{ icono: string; texto: string }> 
   { icono: '✨', texto: 'Cualquier duda, quedo al pendiente.' },
 ];
 
-function indicacionesPrimeraCita(limite: string): { html: string; texto: string[] } {
-  const lineas = INDICACIONES_PRIMERA_CITA.map((i) => ({ icono: i.icono, texto: i.texto.replace('{limite}', limite) }));
+/** Indicaciones que Eveline manda cuando la cita es subsecuente: no lleva
+ *  depósito ni confirmación, el pago va antes de la sesión. */
+export const INDICACIONES_CITA_SUBSECUENTE: Array<{ icono: string; texto: string }> = [
+  { icono: '⚠️', texto: 'Al ser una cita subsecuente, esta cita ya está confirmada.' },
+  { icono: '💳', texto: 'El pago de tu sesión deberá realizarse antes de la cita; puede ser el mismo día de la sesión.' },
+  { icono: '⏰', texto: 'Recuerda estar puntual en tu sesión: solo damos diez minutos de tolerancia. Pasado ese tiempo, la sesión se cancela y debe ser pagada.' },
+  { icono: '📜', texto: 'Ingresa a la sesión de Zoom con tu nombre.' },
+  { icono: '⚠️', texto: 'Si requieres cambiar el horario o el día, o cancelar (en esta y futuras sesiones), avisa con mínimo 24 horas de anticipación; de lo contrario se cobrará la cita.' },
+  { icono: '‼️', texto: 'Las citas SUBSECUENTES agendadas al final de tus sesiones anteriores ya están confirmadas. No nos comunicaremos contigo para confirmarlas. Cada paciente adulto debe hacerse cargo de recordar sus citas y asistir o cancelar con tiempo.' },
+  { icono: '✨', texto: 'Cualquier duda, quedo al pendiente.' },
+];
+
+function bloqueIndicaciones(cual: string, lineas: Array<{ icono: string; texto: string }>): { html: string; texto: string[] } {
   const html = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-collapse:separate;background:#fff8e6;border:1px solid ${C.doradoClaro};border-radius:10px;">
-      <tr><td style="padding:18px 20px 6px;font-family:${FUENTE_TITULO};font-size:16px;font-weight:600;color:${C.texto};">✅ Por favor, lee completo (primera cita)</td></tr>
+      <tr><td style="padding:18px 20px 6px;font-family:${FUENTE_TITULO};font-size:16px;font-weight:600;color:${C.texto};">✅ Por favor, lee completo (${escaparHtml(cual)})</td></tr>
       ${lineas
         .map(
           (l) => `<tr><td style="padding:6px 20px;font-family:${FUENTE_TEXTO};font-size:14px;line-height:1.6;color:${C.texto};">${l.icono} ${escaparHtml(l.texto)}</td></tr>`,
@@ -88,7 +99,18 @@ function indicacionesPrimeraCita(limite: string): { html: string; texto: string[
         .join('')}
       <tr><td style="padding:6px 20px 16px;font-size:0;line-height:0;">&nbsp;</td></tr>
     </table>`;
-  return { html, texto: ['✅ Por favor, leer completo (primera cita):', '', ...lineas.map((l) => `${l.icono} ${l.texto}`)] };
+  return { html, texto: [`✅ Por favor, leer completo (${cual}):`, '', ...lineas.map((l) => `${l.icono} ${l.texto}`)] };
+}
+
+/** El bloque que toca según el tipo de cita; nada si no se sabe cuál es. */
+function indicacionesCita(d: DetalleCita): { html: string; texto: string[] } | null {
+  if (d.primeraCita === undefined) return null;
+  if (!d.primeraCita) return bloqueIndicaciones('cita subsecuente', INDICACIONES_CITA_SUBSECUENTE);
+  const limite = d.limiteDeposito ?? 'la fecha indicada por Eveline';
+  return bloqueIndicaciones(
+    'primera cita',
+    INDICACIONES_PRIMERA_CITA.map((i) => ({ icono: i.icono, texto: i.texto.replace('{limite}', limite) })),
+  );
 }
 
 export type CorreoListo = { asunto: string; texto: string; html: string };
@@ -216,43 +238,64 @@ function lineasTexto(d: DetalleCita, conCliente: boolean): string[] {
 
 /** Correo que recibe la persona que agendó. */
 export function correoCitaCliente(d: DetalleCita): CorreoListo {
-  const asunto = `Recibimos tu solicitud: ${d.servicio}`;
-  const indicaciones = d.primeraCita ? indicacionesPrimeraCita(d.limiteDeposito ?? 'la fecha indicada por Eveline') : null;
+  /* La cita subsecuente no espera confirmación: así la maneja Eveline. */
+  const subsecuente = d.primeraCita === false;
+  const asunto = subsecuente ? `Tu cita quedó agendada: ${d.servicio}` : `Recibimos tu solicitud: ${d.servicio}`;
+  const titulo = subsecuente ? 'Tu cita subsecuente está confirmada' : 'Recibimos tu solicitud de cita';
+  const entrada = subsecuente
+    ? 'Gracias por confiar en este espacio. Tu cita quedó agendada y estos son los datos:'
+    : 'Gracias por confiar en este espacio. Recibimos tu solicitud de cita y estos son los datos:';
+  const indicaciones = indicacionesCita(d);
   const cuerpo = `
     <p style="margin:0 0 16px;">Hola <strong>${escaparHtml(d.nombre)}</strong>,</p>
-    <p style="margin:0 0 20px;">Gracias por confiar en este espacio. Recibimos tu solicitud de cita y estos son los datos:</p>
+    <p style="margin:0 0 20px;">${entrada}</p>
     ${tablaDetalle(filasCita(d, false))}
-    <p style="margin:24px 0 20px;">Eveline la <strong>confirmará en breve</strong> por este medio o por WhatsApp. Si necesitas cambiarla, responde a este correo o escríbele directamente:</p>
+    <p style="margin:24px 0 20px;">${
+      subsecuente
+        ? 'Al ser una cita subsecuente, <strong>ya está confirmada</strong>: no hace falta que esperes respuesta. Si necesitas cambiarla o cancelarla, responde a este correo o escríbele directamente:'
+        : 'Eveline la <strong>confirmará en breve</strong> por este medio o por WhatsApp. Si necesitas cambiarla, responde a este correo o escríbele directamente:'
+    }</p>
     ${boton('Escribir por WhatsApp', WHATSAPP.url)}
     ${indicaciones ? indicaciones.html : ''}
     <p style="margin:24px 0 0;font-size:14px;color:${C.textoSuave};">Recuerda: solo se puede tener una cita agendada a la vez, y la cita debe agendarla la persona que tomará la sesión.</p>`;
   const texto = [
     `Hola ${d.nombre},`,
     '',
-    'Gracias por confiar en este espacio. Recibimos tu solicitud de cita y estos son los datos:',
+    entrada,
     '',
     ...lineasTexto(d, false),
     '',
-    'Eveline la confirmará en breve por este medio o por WhatsApp.',
-    `Si necesitas cambiarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
+    ...(subsecuente
+      ? [
+          'Al ser una cita subsecuente, ya está confirmada: no hace falta que esperes respuesta.',
+          `Si necesitas cambiarla o cancelarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
+        ]
+      : [
+          'Eveline la confirmará en breve por este medio o por WhatsApp.',
+          `Si necesitas cambiarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
+        ]),
     ...(indicaciones ? ['', ...indicaciones.texto] : []),
     '',
     `“${FRASE_EVELINE}”`,
     '— Eveline Dublán · www.evelinedublan.com',
   ].join('\n');
-  return { asunto, texto, html: envolver({ titulo: 'Recibimos tu solicitud de cita', preencabezado: `${d.servicio} · ${d.fechaLarga} a las ${d.hora}`, cuerpo }) };
+  return { asunto, texto, html: envolver({ titulo, preencabezado: `${d.servicio} · ${d.fechaLarga} a las ${d.hora}`, cuerpo }) };
 }
 
 /** Aviso que recibe Eveline con los datos completos. */
 export function correoCitaAdmin(d: DetalleCita): CorreoListo {
-  const asunto = `Nueva cita: ${d.servicio} · ${d.fechaLarga} ${d.hora}`;
+  const subsecuente = d.primeraCita === false;
+  const asunto = `Nueva cita${subsecuente ? ' subsecuente' : ''}: ${d.servicio} · ${d.fechaLarga} ${d.hora}`;
+  const aviso = subsecuente
+    ? 'Hola Eveline, alguien acaba de agendar una cita <strong>subsecuente</strong> desde el sitio. En su correo ya se le dijo que queda confirmada; en el panel sigue como pendiente hasta que la marques.'
+    : 'Hola Eveline, alguien acaba de solicitar una cita desde el sitio. Queda <strong>pendiente</strong> hasta que la confirmes en el panel.';
   const cuerpo = `
-    <p style="margin:0 0 20px;">Hola Eveline, alguien acaba de solicitar una cita desde el sitio. Queda <strong>pendiente</strong> hasta que la confirmes en el panel.</p>
+    <p style="margin:0 0 20px;">${aviso}</p>
     ${tablaDetalle(filasCita(d, true))}
     <p style="margin:24px 0 20px;">Al responder este correo le escribes directamente a ${escaparHtml(d.nombre)}.</p>
     ${boton('Abrir el panel de citas', `${URL_SITIO}/admin/citas`)}`;
   const texto = [
-    'Hola Eveline, alguien acaba de solicitar una cita desde el sitio. Queda pendiente hasta que la confirmes en el panel.',
+    aviso.replace(/<[^>]+>/g, ''),
     '',
     ...lineasTexto(d, true),
     '',
