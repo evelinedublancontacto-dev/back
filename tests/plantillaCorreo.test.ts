@@ -50,8 +50,14 @@ describe('primera cita', () => {
     expect(primera.html).toContain('hasta el sábado, 19 de septiembre');
     expect(primera.html).toContain('diez minutos de tolerancia');
     expect(primera.html).toContain('Primera cita');
-    expect(primera.html).toContain('confirmará en breve');
+    /* Ya no se promete una confirmación manual: la cita la confirma el depósito. */
+    expect(primera.html).not.toContain('confirmará en breve');
+    expect(primera.html).toContain('se confirma con tu depósito');
+    /* Y los datos de la cuenta viajan en el correo, ya no se piden por WhatsApp. */
+    expect(primera.html).toContain('Datos para el depósito');
+    expect(primera.html).toContain('01 22 90 02 96 84 94 39 80');
     expect(primera.texto).toContain('✅ Por favor, leer completo (primera cita)');
+    expect(primera.texto).toContain('CLABE: 01 22 90 02 96 84 94 39 80');
   });
 });
 

@@ -12,6 +12,17 @@ export const URL_SITIO = 'https://www.evelinedublan.com';
 export const URL_LOGO = `${URL_SITIO}/assets/logos/eveline-logo.png`;
 export const WHATSAPP = { numero: '+52 771 143 91 16', url: 'https://wa.me/527711439116' };
 
+/** Datos de la cuenta de Eveline. Van en el correo: antes había que pedirlos por WhatsApp.
+ *  Se escriben agrupados igual que en la imagen que ella comparte, para que se lean sin errores. */
+export const DEPOSITO = {
+  banco: 'BBVA',
+  titular: 'Eveline Montserrat González Dublán',
+  cuenta: '29 68 49 43 98',
+  clabe: '01 22 90 02 96 84 94 39 80',
+  paypal: 'evelinedublan@gmail.com',
+  notaPaypal: 'solo en PayPal, agregar 3% sobre el total',
+};
+
 /** Frase de Eveline en la sección "Sobre mí" del sitio. */
 export const FRASE_EVELINE = 'Acompaño a los seres sintientes en sus caminos de sanación, tejiendo puentes de claridad, respeto y equilibrio.';
 export const LEMA = 'Psicoterapeuta & Terapeuta Holística';
@@ -68,7 +79,7 @@ export type DetalleCita = {
 export const INDICACIONES_PRIMERA_CITA: Array<{ icono: string; texto: string }> = [
   { icono: '💡', texto: 'Te recordamos que esta cita será confirmada con tu depósito, que puedes realizar desde hoy y hasta el {limite}. En caso de no realizarse el depósito en los días indicados, se liberará el horario para otro paciente.' },
   { icono: '‼️', texto: 'No realices el depósito fuera del tiempo estipulado. Aunque lo realices, ya no nos será posible darte el día y horario previamente pactado.' },
-  { icono: '📩', texto: 'El comprobante tendrá que ser compartido por este medio o por WhatsApp para su registro. En el concepto deberá ir el nombre del paciente.' },
+  { icono: '📩', texto: `El comprobante tendrá que ser compartido por WhatsApp al ${WHATSAPP.numero} para su registro. En el concepto deberá ir el nombre del paciente.` },
   { icono: '⏰', texto: 'Recuerda estar puntual en tu sesión: solo damos diez minutos de tolerancia. Pasado ese tiempo, la sesión se cancela y debe ser pagada.' },
   { icono: '📜', texto: 'Ingresa a la sesión de Zoom con tu nombre.' },
   { icono: '⚠️', texto: 'Si requieres cambiar el horario o el día, o cancelar (en esta y futuras sesiones), avisa con mínimo 24 horas de anticipación; de lo contrario se cobrará la cita.' },
@@ -100,6 +111,33 @@ function bloqueIndicaciones(cual: string, lineas: Array<{ icono: string; texto: 
       <tr><td style="padding:6px 20px 16px;font-size:0;line-height:0;">&nbsp;</td></tr>
     </table>`;
   return { html, texto: [`✅ Por favor, leer completo (${cual}):`, '', ...lineas.map((l) => `${l.icono} ${l.texto}`)] };
+}
+
+/** Tarjeta con la cuenta para depositar; acompaña a las indicaciones. */
+function bloqueDeposito(): { html: string; texto: string[] } {
+  const filas: Array<[string, string]> = [
+    ['Banco', DEPOSITO.banco],
+    ['Titular', DEPOSITO.titular],
+    ['No. de cuenta', DEPOSITO.cuenta],
+    ['CLABE', DEPOSITO.clabe],
+    ['PayPal', `${DEPOSITO.paypal} (${DEPOSITO.notaPaypal})`],
+  ];
+  const pie = `En el concepto debe ir el nombre del paciente. Comparte tu comprobante por WhatsApp al ${WHATSAPP.numero}.`;
+  const html = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-collapse:separate;background:${C.secundario};border:1px solid ${C.borde};border-radius:10px;">
+      <tr><td colspan="2" style="padding:18px 20px 10px;font-family:${FUENTE_TITULO};font-size:16px;font-weight:600;color:${C.texto};">💳 Datos para el depósito</td></tr>
+      ${filas
+        .map(
+          ([etiqueta, valor]) => `<tr>
+        <td style="padding:4px 20px;font-family:${FUENTE_TEXTO};font-size:13px;color:${C.textoSuave};text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;vertical-align:top;">${etiqueta}</td>
+        <td style="padding:4px 20px 4px 0;font-family:${FUENTE_TEXTO};font-size:14px;line-height:1.5;color:${C.texto};font-weight:600;">${escaparHtml(valor)}</td>
+      </tr>`,
+        )
+        .join('')}
+      <tr><td colspan="2" style="padding:12px 20px 16px;font-family:${FUENTE_TEXTO};font-size:13px;line-height:1.6;color:${C.textoSuave};">${escaparHtml(pie)}</td></tr>
+    </table>`;
+  const texto = ['💳 Datos para el depósito:', '', ...filas.map(([etiqueta, valor]) => `${etiqueta}: ${valor}`), '', pie];
+  return { html, texto };
 }
 
 /** El bloque que toca según el tipo de cita; nada si no se sabe cuál es. */
@@ -246,6 +284,9 @@ export function correoCitaCliente(d: DetalleCita): CorreoListo {
     ? 'Gracias por confiar en este espacio. Tu cita quedó agendada y estos son los datos:'
     : 'Gracias por confiar en este espacio. Recibimos tu solicitud de cita y estos son los datos:';
   const indicaciones = indicacionesCita(d);
+  /* La cuenta solo va en la primera cita: es la que se confirma con depósito.
+     La subsecuente se paga antes de la sesión y quien la agenda ya tiene los datos. */
+  const deposito = d.primeraCita === true ? bloqueDeposito() : null;
   const cuerpo = `
     <p style="margin:0 0 16px;">Hola <strong>${escaparHtml(d.nombre)}</strong>,</p>
     <p style="margin:0 0 20px;">${entrada}</p>
@@ -253,10 +294,11 @@ export function correoCitaCliente(d: DetalleCita): CorreoListo {
     <p style="margin:24px 0 20px;">${
       subsecuente
         ? 'Al ser una cita subsecuente, <strong>ya está confirmada</strong>: no hace falta que esperes respuesta. Si necesitas cambiarla o cancelarla, responde a este correo o escríbele directamente:'
-        : 'Eveline la <strong>confirmará en breve</strong> por este medio o por WhatsApp. Si necesitas cambiarla, responde a este correo o escríbele directamente:'
+        : 'Tu horario queda apartado y <strong>se confirma con tu depósito</strong>, según las indicaciones de abajo. Si necesitas cambiarla o cancelarla, responde a este correo o escríbele directamente:'
     }</p>
     ${boton('Escribir por WhatsApp', WHATSAPP.url)}
     ${indicaciones ? indicaciones.html : ''}
+    ${deposito ? deposito.html : ''}
     <p style="margin:24px 0 0;font-size:14px;color:${C.textoSuave};">Recuerda: solo se puede tener una cita agendada a la vez, y la cita debe agendarla la persona que tomará la sesión.</p>`;
   const texto = [
     `Hola ${d.nombre},`,
@@ -271,10 +313,11 @@ export function correoCitaCliente(d: DetalleCita): CorreoListo {
           `Si necesitas cambiarla o cancelarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
         ]
       : [
-          'Eveline la confirmará en breve por este medio o por WhatsApp.',
-          `Si necesitas cambiarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
+          'Tu horario queda apartado y se confirma con tu depósito, según las indicaciones de abajo.',
+          `Si necesitas cambiarla o cancelarla, responde a este correo o escríbele al ${WHATSAPP.numero}.`,
         ]),
     ...(indicaciones ? ['', ...indicaciones.texto] : []),
+    ...(deposito ? ['', ...deposito.texto] : []),
     '',
     `“${FRASE_EVELINE}”`,
     '— Eveline Dublán · www.evelinedublan.com',
