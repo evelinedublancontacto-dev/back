@@ -1,7 +1,9 @@
 import { Servicio, type ReglasServicio } from '../../modelos';
 
 /* Copia de src/data/services.json del front, más las reglas que hoy están
-   escritas en código: cuencos tibetanos solo viernes y presencial. */
+   escritas en código: cuencos tibetanos solo viernes y presencial.
+   Eveline no ofrece la meditación guiada ni la terapia de parejas: se siembran
+   inactivas para conservar el registro (citas viejas) sin mostrarlas en la agenda. */
 const SERVICIOS: Array<{
   id: string;
   titulo: string;
@@ -9,9 +11,10 @@ const SERVICIOS: Array<{
   duracion_min: number;
   precio: number;
   orden: number;
+  activo?: boolean;
   reglas?: ReglasServicio;
 }> = [
-  { id: 'psicoterapia', titulo: 'Sesión de Psicoterapia', descripcion: 'Sesión individual de psicoterapia para trabajar emociones, ansiedad, depresión o cualquier tema personal.', duracion_min: 60, precio: 800, orden: 1 },
+  { id: 'psicoterapia', titulo: 'Sesión de Psicoterapia', descripcion: 'Sesión individual de psicoterapia para trabajar emociones, ansiedad, depresión o cualquier tema personal.', duracion_min: 60, precio: 600, orden: 1 },
   { id: 'sanacion-energetica', titulo: 'Sanación Energética', descripcion: 'Limpieza y armonización de chakras para restaurar el equilibrio energético de tu cuerpo.', duracion_min: 60, precio: 700, orden: 2 },
   {
     id: 'cuencos-tibetanos',
@@ -22,9 +25,9 @@ const SERVICIOS: Array<{
     orden: 3,
     reglas: { dias_permitidos: [5], modalidad: 'presencial', mensaje_dias: 'Los cuencos tibetanos solo se agendan los viernes (hora del centro de México).' },
   },
-  { id: 'meditacion-guiada', titulo: 'Meditación Guiada Personalizada', descripcion: 'Sesión de meditación personalizada para encontrar paz interior y claridad mental.', duracion_min: 40, precio: 500, orden: 4 },
-  { id: 'terapia-parejas', titulo: 'Terapia de Parejas', descripcion: 'Sesión para trabajar la comunicación, confianza y conexión en tu relación.', duracion_min: 75, precio: 1200, orden: 5 },
-  { id: 'sesion-cumpleanos', titulo: 'Sesión Especial de Cumpleaños', descripcion: 'Una sesión especial de sanación y energía positiva para celebrar tu nuevo año de vida.', duracion_min: 60, precio: 900, orden: 6 },
+  { id: 'meditacion-guiada', titulo: 'Meditación Guiada Personalizada', descripcion: 'Sesión de meditación personalizada para encontrar paz interior y claridad mental.', duracion_min: 40, precio: 500, orden: 4, activo: false },
+  { id: 'terapia-parejas', titulo: 'Terapia de Parejas', descripcion: 'Sesión para trabajar la comunicación, confianza y conexión en tu relación.', duracion_min: 75, precio: 1200, orden: 5, activo: false },
+  { id: 'sesion-cumpleanos', titulo: 'Sesión Especial de Cumpleaños', descripcion: 'Una sesión especial de sanación y energía positiva para celebrar tu nuevo año de vida.', duracion_min: 60, precio: 700, orden: 6 },
 ];
 
 /** Inserta los que faltan; no pisa lo que el admin ya haya editado. */
