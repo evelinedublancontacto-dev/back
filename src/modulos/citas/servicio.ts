@@ -1,5 +1,6 @@
-import { UniqueConstraintError } from 'sequelize';
-import { Cita, Cliente, Servicio } from '../../modelos';
+import { Op, UniqueConstraintError } from 'sequelize';
+import { Cita, Cliente, Servicio, type Modalidad } from '../../modelos';
+import { ESTADOS_VIVOS } from '../../modelos/Cita';
 import { ErrorHttp } from '../../errores';
 import { ahoraEnCDMX, esFechaISO, esHora } from '../../servicios/fechas';
 import { enviarCorreo } from '../../servicios/correo';
@@ -31,7 +32,31 @@ export async function obtenerOCrearCliente(datos: { nombre: string; correo: stri
   }
 }
 
-export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<Cita> {
+export const ETIQUETA_MODALIDAD: Record<Modalidad, string> = {
+  presencial: 'Presencial, en consultorio',
+  en_linea: 'En línea (videollamada)',
+};
+
+/** Cita viva (pendiente o confirmada) del cliente que todavía no ocurre.
+    Regla de Eveline: una persona solo puede tener una cita agendada a la
+    vez; la siguiente se agenda cuando esta se realice o se cancele. */
+export async function citaVivaPendiente(clienteId: string, ahora: { fecha: string; hora: string }) {
+  return Cita.findOne({
+    where: {
+      cliente_id: clienteId,
+      estado: { [Op.in]: [...ESTADOS_VIVOS] },
+      [Op.or]: [{ fecha: { [Op.gt]: ahora.fecha } }, { fecha: ahora.fecha, hora: { [Op.gt]: ahora.hora } }],
+    },
+    order: [['fecha', 'ASC'], ['hora', 'ASC']],
+  });
+}
+
+function fechaLarga(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, d)));
+}
+
+export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita; modalidad?: Modalidad }> {
   if (!esFechaISO(d.fecha)) throw new ErrorHttp(400, 'fecha_invalida', 'La fecha no es válida.');
   if (!esHora(d.hora)) throw new ErrorHttp(400, 'hora_invalida', 'La hora no es válida.');
 
@@ -56,6 +81,15 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<Cita> {
 
   const cliente = await obtenerOCrearCliente({ nombre: d.nombre.trim(), correo: d.email, telefono: d.telefono.trim() });
 
+  const previa = await citaVivaPendiente(cliente.id, ahora);
+  if (previa) {
+    throw new ErrorHttp(
+      409,
+      'cita_ya_agendada',
+      `Ya tienes una cita agendada para el ${fechaLarga(previa.fecha)} a las ${previa.hora.slice(0, 5)}. Solo se puede tener una cita a la vez; cuando se realice o se cancele podrás agendar la siguiente.`,
+    );
+  }
+
   let cita: Cita;
   try {
     cita = await Cita.create({
@@ -77,14 +111,15 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<Cita> {
 
   cita.cliente = cliente;
   cita.servicio = servicio;
-  void notificarReserva(cita);
-  return cita;
+  void notificarReserva(cita, disponibilidad.modalidad);
+  return { cita, modalidad: disponibilidad.modalidad };
 }
 
-async function notificarReserva(cita: Cita) {
+async function notificarReserva(cita: Cita, modalidad?: Modalidad) {
   const c = cita.cliente!;
   const s = cita.servicio!;
   const cuando = `${cita.fecha} a las ${cita.hora} (hora del centro de México)`;
+  const comoSeAtiende = modalidad ? ETIQUETA_MODALIDAD[modalidad] : null;
 
   const alCliente = enviarCorreo({
     para: c.correo,
@@ -93,6 +128,7 @@ async function notificarReserva(cita: Cita) {
       `Hola ${c.nombre},`,
       '',
       `Recibimos tu solicitud de cita para ${s.titulo} el ${cuando}.`,
+      comoSeAtiende ? `Modalidad: ${comoSeAtiende}.` : null,
       'Eveline la confirmará en breve por este medio o por WhatsApp.',
       '',
       cita.notas ? `Tus notas: ${cita.notas}` : null,
@@ -109,6 +145,7 @@ async function notificarReserva(cita: Cita) {
         texto: [
           `Servicio:  ${s.titulo}`,
           `Cuándo:    ${cuando}`,
+          comoSeAtiende ? `Modalidad: ${comoSeAtiende}` : null,
           `Cliente:   ${c.nombre}`,
           `Correo:    ${c.correo}`,
           `Teléfono:  ${c.telefono}`,

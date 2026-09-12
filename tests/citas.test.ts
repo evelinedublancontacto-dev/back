@@ -54,7 +54,8 @@ describe('GET /v1/servicios', () => {
   it('devuelve los activos con la forma que espera el front', async () => {
     const res = await app.handle(new Request('http://localhost/v1/servicios'));
     const { servicios } = (await res.json()) as { servicios: Array<Record<string, unknown>> };
-    expect(servicios.length).toBeGreaterThanOrEqual(6);
+    expect(servicios.length).toBeGreaterThanOrEqual(4);
+    expect(servicios.map((s) => s.id)).not.toContain('terapia-parejas'); // Eveline no lo ofrece
     expect(servicios[0]).toMatchObject({ id: expect.any(String), titulo: expect.any(String), duracion: expect.any(Number), precio: expect.any(Number) });
   });
 });
@@ -67,9 +68,17 @@ describe('GET /v1/disponibilidad', () => {
   });
   it('en un día hábil ofrece bloques de 9 a 16', async () => {
     const res = await app.handle(new Request(`http://localhost/v1/disponibilidad?fecha=${FECHA}`));
-    const r = (await res.json()) as { slots: Array<{ hora: string }>; disponible: boolean };
+    const r = (await res.json()) as { slots: Array<{ hora: string }>; disponible: boolean; modalidad?: string };
     expect(r.disponible).toBe(true);
     expect(r.slots.map((s) => s.hora)).toContain('10:00');
+    expect(r.modalidad).toBe('en_linea'); // FECHA nunca es viernes
+  });
+  it('los viernes la atención es presencial', async () => {
+    const d = new Date(`${FECHA}T12:00:00Z`);
+    while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1);
+    const viernes = d.toISOString().slice(0, 10);
+    const res = await app.handle(new Request(`http://localhost/v1/disponibilidad?fecha=${viernes}`));
+    expect(((await res.json()) as { modalidad?: string }).modalidad).toBe('presencial');
   });
   it('cuencos tibetanos no se ofrece fuera de viernes', async () => {
     expect(diaSemana(FECHA)).not.toBe(5);
@@ -117,6 +126,15 @@ describe('POST /v1/citas', () => {
     const r = (await res.json()) as { slots: Array<{ hora: string; disponible: boolean }> };
     expect(r.slots.find((s) => s.hora === '10:00')?.disponible).toBe(false);
     expect(r.slots.find((s) => s.hora === '11:00')?.disponible).toBe(true);
+  });
+
+  it('la misma persona no puede tener dos citas agendadas a la vez', async () => {
+    const res = await reservar({ hora: '11:00' });
+    expect(res.status).toBe(409);
+    const cuerpo = (await res.json()) as { codigo: string; error: string };
+    expect(cuerpo.codigo).toBe('cita_ya_agendada');
+    expect(cuerpo.error).toContain('10:00');
+    expect(await Cita.count({ where: { fecha: FECHA } })).toBe(1);
   });
 
   it('un horario cancelado vuelve a quedar libre', async () => {

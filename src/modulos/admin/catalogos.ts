@@ -6,7 +6,7 @@
 
 import { Elysia, t } from 'elysia';
 import { ForeignKeyConstraintError, Op, UniqueConstraintError } from 'sequelize';
-import { Bloqueo, Cita, Cliente, Horario, Servicio } from '../../modelos';
+import { Bloqueo, Cita, Cliente, Horario, MODALIDADES, Servicio } from '../../modelos';
 import { soloAdmin } from '../../middleware/sesion';
 import { ErrorHttp } from '../../errores';
 import { registrar } from '../../servicios/bitacora';
@@ -14,6 +14,7 @@ import { esFechaISO, esHora } from '../../servicios/fechas';
 import { aSlug } from '../../servicios/slug';
 
 const HORA = t.String({ pattern: '^\\d{2}:\\d{2}$' });
+const MODALIDAD = t.Union(MODALIDADES.map((m) => t.Literal(m)));
 
 const reglas = t.Optional(
   t.Object({
@@ -117,8 +118,8 @@ export const adminHorarios = new Elysia({ prefix: '/horarios', tags: ['Admin · 
       return { horario: h };
     },
     {
-      body: t.Object({ dia_semana: t.Integer({ minimum: 0, maximum: 6 }), hora_inicio: HORA, hora_fin: HORA, activo: t.Optional(t.Boolean()) }),
-      detail: { summary: 'Agregar ventana de atención' },
+      body: t.Object({ dia_semana: t.Integer({ minimum: 0, maximum: 6 }), hora_inicio: HORA, hora_fin: HORA, activo: t.Optional(t.Boolean()), modalidad: t.Optional(MODALIDAD) }),
+      detail: { summary: 'Agregar ventana de atención (modalidad: presencial o en_linea)' },
     },
   )
   .patch(
@@ -134,7 +135,7 @@ export const adminHorarios = new Elysia({ prefix: '/horarios', tags: ['Admin · 
       void registrar(actor, 'actualizar', 'horario', h.id, antes, h.toJSON());
       return { horario: h };
     },
-    { body: t.Partial(t.Object({ dia_semana: t.Integer({ minimum: 0, maximum: 6 }), hora_inicio: HORA, hora_fin: HORA, activo: t.Boolean() })), detail: { summary: 'Editar ventana' } },
+    { body: t.Partial(t.Object({ dia_semana: t.Integer({ minimum: 0, maximum: 6 }), hora_inicio: HORA, hora_fin: HORA, activo: t.Boolean(), modalidad: MODALIDAD })), detail: { summary: 'Editar ventana' } },
   )
   .delete(
     '/:id',

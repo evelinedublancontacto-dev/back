@@ -13,15 +13,16 @@ export const rutasCitas = new Elysia({ prefix: '/citas', tags: ['Agenda'] }).pos
       return { cita: null }; // bot: fingimos éxito y no guardamos nada
     }
     limitarReservas(obtenerIP(request, server));
-    const cita = await crearCitaPublica(body);
+    const { cita, modalidad } = await crearCitaPublica(body);
     set.status = 201;
-    return { cita: cita.plana() };
+    return { cita: { ...cita.plana(), modalidad: modalidad ?? null } };
   },
   {
     body: cuerpoNuevaCita,
     detail: {
       summary: 'Reservar una cita (público)',
-      description: 'Crea el cliente si no existe y una cita en estado pendiente. 409 horario_ocupado si el bloque acaba de tomarse.',
+      description:
+        'Crea el cliente si no existe y una cita en estado pendiente. 409 horario_ocupado si el bloque acaba de tomarse; 409 cita_ya_agendada si esa persona ya tiene una cita viva por ocurrir (solo una a la vez).',
     },
   },
 );

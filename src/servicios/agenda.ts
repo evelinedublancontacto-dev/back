@@ -6,10 +6,11 @@
 
 import { aMinutos, deMinutos, diaSemana } from './fechas';
 import type { ReglasServicio } from '../modelos/Servicio';
+import type { Modalidad } from '../modelos/Horario';
 
 export const INTERVALO_MIN = 60;
 
-export type VentanaHorario = { hora_inicio: string; hora_fin: string };
+export type VentanaHorario = { hora_inicio: string; hora_fin: string; modalidad?: Modalidad };
 export type RangoBloqueo = { hora_inicio: string | null; hora_fin: string | null };
 export type Bloque = { hora: string; disponible: boolean };
 
@@ -28,8 +29,16 @@ export type SalidaDisponibilidad = {
   fecha: string;
   slots: Bloque[];
   disponible: boolean;
+  /** Cómo se atiende ese día. Falta cuando el día no tiene ventanas. */
+  modalidad?: Modalidad;
   mensaje?: string;
 };
+
+/** La modalidad es del día: si alguna ventana es presencial, el día lo es. */
+export function modalidadDelDia(horarios: VentanaHorario[]): Modalidad | undefined {
+  if (horarios.length === 0) return undefined;
+  return horarios.some((h) => h.modalidad === 'presencial') ? 'presencial' : 'en_linea';
+}
 
 export function generarBloques(horarios: VentanaHorario[], intervaloMin = INTERVALO_MIN): string[] {
   const bloques = new Set<string>();
@@ -54,6 +63,7 @@ function bloqueadoPor(hora: string, intervaloMin: number, bloqueos: RangoBloqueo
 export function calcularDisponibilidad(e: EntradaDisponibilidad): SalidaDisponibilidad {
   const intervalo = e.intervaloMin ?? INTERVALO_MIN;
   const dia = diaSemana(e.fecha);
+  const modalidad = modalidadDelDia(e.horarios);
 
   const permitidos = e.reglas?.dias_permitidos;
   if (permitidos && permitidos.length > 0 && !permitidos.includes(dia)) {
@@ -61,12 +71,13 @@ export function calcularDisponibilidad(e: EntradaDisponibilidad): SalidaDisponib
       fecha: e.fecha,
       slots: [],
       disponible: false,
+      modalidad,
       mensaje: e.reglas?.mensaje_dias ?? 'Este servicio no se agenda ese día.',
     };
   }
 
   if (e.bloqueos.some((b) => b.hora_inicio === null)) {
-    return { fecha: e.fecha, slots: [], disponible: false, mensaje: 'Ese día no hay atención.' };
+    return { fecha: e.fecha, slots: [], disponible: false, modalidad, mensaje: 'Ese día no hay atención.' };
   }
 
   const ocupadas = new Set(e.horasOcupadas);
@@ -80,5 +91,6 @@ export function calcularDisponibilidad(e: EntradaDisponibilidad): SalidaDisponib
     fecha: e.fecha,
     slots,
     disponible: slots.some((s) => s.disponible),
+    modalidad,
   };
 }

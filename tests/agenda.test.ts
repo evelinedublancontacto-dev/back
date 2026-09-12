@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { calcularDisponibilidad, generarBloques } from '../src/servicios/agenda';
+import { calcularDisponibilidad, generarBloques, modalidadDelDia } from '../src/servicios/agenda';
 import { ahoraEnCDMX, diaSemana, esFechaISO, esHora } from '../src/servicios/fechas';
 
 const LUNES = '2026-10-05';
@@ -82,5 +82,27 @@ describe('calcularDisponibilidad', () => {
     const r = calcularDisponibilidad({ ...base, horarios: [] });
     expect(r.slots).toEqual([]);
     expect(r.disponible).toBe(false);
+    expect(r.modalidad).toBeUndefined();
+  });
+
+  it('la modalidad sale de las ventanas del día: viernes presencial, el resto en línea', () => {
+    const viernes = calcularDisponibilidad({ ...base, fecha: VIERNES, horarios: [{ hora_inicio: '09:00', hora_fin: '13:00', modalidad: 'presencial' }] });
+    expect(viernes.modalidad).toBe('presencial');
+    const lunes = calcularDisponibilidad({ ...base, horarios: [{ hora_inicio: '10:00', hora_fin: '13:00', modalidad: 'en_linea' }] });
+    expect(lunes.modalidad).toBe('en_linea');
+    expect(calcularDisponibilidad(base).modalidad).toBe('en_linea'); // sin dato: en línea
+  });
+
+  it('la modalidad se conserva aunque el día no tenga bloques', () => {
+    const r = calcularDisponibilidad({ ...base, horarios: [{ ...JORNADA[0]!, modalidad: 'presencial' }], bloqueos: [{ hora_inicio: null, hora_fin: null }] });
+    expect(r.slots).toEqual([]);
+    expect(r.modalidad).toBe('presencial');
+  });
+});
+
+describe('modalidadDelDia', () => {
+  it('basta una ventana presencial para que el día lo sea', () => {
+    expect(modalidadDelDia([{ hora_inicio: '09:00', hora_fin: '12:00', modalidad: 'en_linea' }, { hora_inicio: '16:00', hora_fin: '18:00', modalidad: 'presencial' }])).toBe('presencial');
+    expect(modalidadDelDia([])).toBeUndefined();
   });
 });

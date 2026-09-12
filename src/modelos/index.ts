@@ -19,3 +19,5 @@ Usuario.hasMany(Sesion, { foreignKey: 'usuario_id', as: 'sesiones' });
 
 export { Servicio, Horario, Bloqueo, Cliente, Cita, Usuario, Sesion, Bitacora, Post };
 export type { ReglasServicio } from './Servicio';
+export { MODALIDADES } from './Horario';
+export type { Modalidad } from './Horario';
