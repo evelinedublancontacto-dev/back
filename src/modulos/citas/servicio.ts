@@ -1,9 +1,10 @@
 import { Op, UniqueConstraintError } from 'sequelize';
 import { Cita, Cliente, Servicio } from '../../modelos';
 import type { ModalidadAtencion } from '../../servicios/agenda';
+import { correoCitaAdmin, correoCitaCliente, ETIQUETA_MODALIDAD } from '../../servicios/plantillaCorreo';
 import { ESTADOS_VIVOS } from '../../modelos/Cita';
 import { ErrorHttp } from '../../errores';
-import { ahoraEnCDMX, esFechaISO, esHora } from '../../servicios/fechas';
+import { ahoraEnCDMX, esFechaISO, esHora, fechaLarga } from '../../servicios/fechas';
 import { enviarCorreo } from '../../servicios/correo';
 import { config } from '../../config';
 import { disponibilidadDelDia } from '../disponibilidad/servicio';
@@ -33,11 +34,7 @@ export async function obtenerOCrearCliente(datos: { nombre: string; correo: stri
   }
 }
 
-export const ETIQUETA_MODALIDAD: Record<ModalidadAtencion, string> = {
-  presencial: 'Presencial, en consultorio',
-  en_linea: 'En línea (videollamada)',
-  a_distancia: 'A distancia, asíncrona (no requiere conectarse)',
-};
+export { ETIQUETA_MODALIDAD };
 
 /* ------------------------------------------------------------------ *
  *  Una cita por persona a la vez (regla de Eveline). "La misma persona"
@@ -85,11 +82,6 @@ export async function citaVivaPendiente(persona: DatosPersona, ahora: { fecha: s
     order: [['fecha', 'ASC'], ['hora', 'ASC']],
   });
   return vivas.find((c) => c.cliente && mismaPersona(persona, c.cliente)) ?? null;
-}
-
-function fechaLarga(fecha: string): string {
-  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
-  return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, d)));
 }
 
 export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita; modalidad?: ModalidadAtencion }> {
@@ -157,43 +149,20 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita
 async function notificarReserva(cita: Cita, modalidad?: ModalidadAtencion) {
   const c = cita.cliente!;
   const s = cita.servicio!;
-  const cuando = `${cita.fecha} a las ${cita.hora} (hora del centro de México)`;
-  const comoSeAtiende = modalidad ? ETIQUETA_MODALIDAD[modalidad] : null;
+  const detalle = {
+    nombre: c.nombre,
+    correo: c.correo,
+    telefono: c.telefono,
+    servicio: s.titulo,
+    fechaLarga: fechaLarga(cita.fecha),
+    hora: cita.hora.slice(0, 5),
+    modalidad,
+    notas: cita.notas,
+  };
 
-  const alCliente = enviarCorreo({
-    para: c.correo,
-    asunto: `Recibimos tu solicitud: ${s.titulo}`,
-    texto: [
-      `Hola ${c.nombre},`,
-      '',
-      `Recibimos tu solicitud de cita para ${s.titulo} el ${cuando}.`,
-      comoSeAtiende ? `Modalidad: ${comoSeAtiende}.` : null,
-      'Eveline la confirmará en breve por este medio o por WhatsApp.',
-      '',
-      cita.notas ? `Tus notas: ${cita.notas}` : null,
-      'Si necesitas cambiarla, responde a este correo.',
-    ]
-      .filter((l) => l !== null)
-      .join('\n'),
-  });
-
+  const alCliente = enviarCorreo({ para: c.correo, ...correoCitaCliente(detalle) });
   const alAdmin = config.CORREO_ADMIN
-    ? enviarCorreo({
-        para: config.CORREO_ADMIN,
-        asunto: `Nueva cita: ${s.titulo} · ${cita.fecha} ${cita.hora}`,
-        texto: [
-          `Servicio:  ${s.titulo}`,
-          `Cuándo:    ${cuando}`,
-          comoSeAtiende ? `Modalidad: ${comoSeAtiende}` : null,
-          `Cliente:   ${c.nombre}`,
-          `Correo:    ${c.correo}`,
-          `Teléfono:  ${c.telefono}`,
-          cita.notas ? `Notas:     ${cita.notas}` : null,
-        ]
-          .filter((l) => l !== null)
-          .join('\n'),
-        responderA: c.correo,
-      })
+    ? enviarCorreo({ para: config.CORREO_ADMIN, ...correoCitaAdmin(detalle), responderA: c.correo })
     : Promise.resolve(false);
 
   await Promise.allSettled([alCliente, alAdmin]);

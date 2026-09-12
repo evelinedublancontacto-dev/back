@@ -46,6 +46,14 @@ export function ahoraEnCDMX(instante = new Date()): { fecha: string; hora: strin
   };
 }
 
+const formatoLargo = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+/** "2026-09-21" → "lunes, 21 de septiembre". Fecha civil, sin zona horaria. */
+export function fechaLarga(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
+  return formatoLargo.format(new Date(Date.UTC(a, m - 1, d)));
+}
+
 export function aMinutos(hora: string): number {
   const [h, m] = hora.split(':').map(Number) as [number, number];
   return h * 60 + m;

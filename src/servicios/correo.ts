@@ -10,7 +10,9 @@ import { config } from '../config';
 export type Correo = {
   para: string;
   asunto: string;
+  /** Versión en texto plano; siempre va, aunque haya html. */
   texto: string;
+  html?: string;
   responderA?: string;
 };
 
@@ -28,6 +30,7 @@ export async function enviarCorreo(c: Correo): Promise<boolean> {
         to: [c.para],
         subject: c.asunto,
         text: c.texto,
+        ...(c.html ? { html: c.html } : {}),
         ...(c.responderA ? { reply_to: c.responderA } : {}),
       }),
     });
