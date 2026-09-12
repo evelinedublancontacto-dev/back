@@ -3,6 +3,7 @@
 import { Servicio } from './Servicio';
 import { Horario } from './Horario';
 import { Bloqueo } from './Bloqueo';
+import { HorarioFecha } from './HorarioFecha';
 import { Cliente } from './Cliente';
 import { Cita } from './Cita';
 import { Usuario } from './Usuario';
@@ -17,7 +18,7 @@ Servicio.hasMany(Cita, { foreignKey: 'servicio_id', as: 'citas' });
 Sesion.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
 Usuario.hasMany(Sesion, { foreignKey: 'usuario_id', as: 'sesiones' });
 
-export { Servicio, Horario, Bloqueo, Cliente, Cita, Usuario, Sesion, Bitacora, Post };
+export { Servicio, Horario, HorarioFecha, Bloqueo, Cliente, Cita, Usuario, Sesion, Bitacora, Post };
 export type { ReglasServicio } from './Servicio';
 export { MODALIDADES } from './Horario';
 export type { Modalidad } from './Horario';

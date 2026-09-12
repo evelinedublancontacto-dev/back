@@ -37,6 +37,13 @@ export type SalidaDisponibilidad = {
   mensaje?: string;
 };
 
+/** Los horarios de una fecha concreta sustituyen a los de la semana: son la
+ *  excepción (el puente, el día que se trabaja en la mañana en vez de la tarde).
+ *  Sin excepciones para esa fecha, rige la semana de siempre. */
+export function ventanasDelDia(semanales: VentanaHorario[], deLaFecha: VentanaHorario[]): VentanaHorario[] {
+  return deLaFecha.length > 0 ? deLaFecha : semanales;
+}
+
 /** La modalidad es del día: si alguna ventana es presencial, el día lo es. */
 export function modalidadDelDia(horarios: VentanaHorario[]): Modalidad | undefined {
   if (horarios.length === 0) return undefined;

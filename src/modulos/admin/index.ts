@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { adminCitas } from './citas';
-import { adminServicios, adminHorarios, adminBloqueos, adminClientes } from './catalogos';
+import { adminServicios, adminHorarios, adminHorariosFecha, adminBloqueos, adminClientes } from './catalogos';
 import { adminBitacora } from './bitacora';
 import { adminPosts } from './posts';
 
@@ -10,6 +10,7 @@ export const rutasAdmin = new Elysia({ prefix: '/admin' })
   .use(adminCitas)
   .use(adminServicios)
   .use(adminHorarios)
+  .use(adminHorariosFecha)
   .use(adminBloqueos)
   .use(adminClientes)
   .use(adminBitacora)

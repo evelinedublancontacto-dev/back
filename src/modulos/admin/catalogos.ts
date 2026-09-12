@@ -1,12 +1,13 @@
 /* ------------------------------------------------------------------ *
  *  src/modulos/admin/catalogos.ts
- *  CRUD de servicios, horarios, bloqueos y clientes. Cuatro recursos con
- *  la misma forma: listar, crear, actualizar, borrar, todo en bitácora.
+ *  CRUD de servicios, horarios (semanales y de una fecha), bloqueos y
+ *  clientes. Cinco recursos con la misma forma: listar, crear, actualizar,
+ *  borrar, todo en bitácora.
  * ------------------------------------------------------------------ */
 
 import { Elysia, t } from 'elysia';
 import { ForeignKeyConstraintError, Op, UniqueConstraintError } from 'sequelize';
-import { Bloqueo, Cita, Cliente, Horario, MODALIDADES, Servicio } from '../../modelos';
+import { Bloqueo, Cita, Cliente, Horario, HorarioFecha, MODALIDADES, Servicio } from '../../modelos';
 import { soloAdmin } from '../../middleware/sesion';
 import { ErrorHttp } from '../../errores';
 import { registrar } from '../../servicios/bitacora';
@@ -148,6 +149,68 @@ export const adminHorarios = new Elysia({ prefix: '/horarios', tags: ['Admin · 
       return { ok: true };
     },
     { detail: { summary: 'Quitar ventana' } },
+  );
+
+/* ------------------------------------------------- horarios de una fecha */
+/* Lo que los bloqueos no saben hacer: abrir o mover horas un día suelto.
+   Si una fecha tiene ventanas aquí, sustituyen a las de su día de la semana. */
+export const adminHorariosFecha = new Elysia({ prefix: '/horarios-fecha', tags: ['Admin · Catálogos'] })
+  .use(soloAdmin)
+  .get(
+    '/',
+    async ({ query }) => ({
+      horarios: await HorarioFecha.findAll({
+        where: query.desde ? { fecha: { [Op.gte]: query.desde } } : {},
+        order: [['fecha', 'ASC'], ['hora_inicio', 'ASC']],
+      }),
+    }),
+    { query: t.Object({ desde: t.Optional(t.String()) }), detail: { summary: 'Horarios por fecha; con ?desde= solo de esa fecha en adelante' } },
+  )
+  .post(
+    '/',
+    async ({ body, actor, set }) => {
+      if (!esFechaISO(body.fecha)) throw new ErrorHttp(400, 'fecha_invalida', 'La fecha debe tener la forma AAAA-MM-DD.');
+      if (body.hora_fin <= body.hora_inicio) throw new ErrorHttp(400, 'rango_invalido', 'La hora de fin debe ser mayor que la de inicio.');
+      const h = await HorarioFecha.create(body);
+      void registrar(actor, 'crear', 'horario_fecha', h.id, null, h.toJSON());
+      set.status = 201;
+      return { horario: h };
+    },
+    {
+      body: t.Object({ fecha: t.String(), hora_inicio: HORA, hora_fin: HORA, modalidad: t.Optional(MODALIDAD), nota: t.Optional(t.String({ maxLength: 200 })) }),
+      detail: { summary: 'Abrir una ventana solo para esa fecha' },
+    },
+  )
+  .patch(
+    '/:id',
+    async ({ params, body, actor }) => {
+      const h = await HorarioFecha.findByPk(params.id);
+      if (!h) throw new ErrorHttp(404, 'horario_no_encontrado', 'Ese horario no existe.');
+      if (body.fecha !== undefined && !esFechaISO(body.fecha)) throw new ErrorHttp(400, 'fecha_invalida', 'La fecha debe tener la forma AAAA-MM-DD.');
+      const antes = h.toJSON();
+      const inicio = body.hora_inicio ?? h.hora_inicio;
+      const fin = body.hora_fin ?? h.hora_fin;
+      if (fin <= inicio) throw new ErrorHttp(400, 'rango_invalido', 'La hora de fin debe ser mayor que la de inicio.');
+      await h.update(body);
+      void registrar(actor, 'actualizar', 'horario_fecha', h.id, antes, h.toJSON());
+      return { horario: h };
+    },
+    {
+      body: t.Partial(t.Object({ fecha: t.String(), hora_inicio: HORA, hora_fin: HORA, modalidad: MODALIDAD, nota: t.String({ maxLength: 200 }) })),
+      detail: { summary: 'Editar una ventana de fecha' },
+    },
+  )
+  .delete(
+    '/:id',
+    async ({ params, actor }) => {
+      const h = await HorarioFecha.findByPk(params.id);
+      if (!h) throw new ErrorHttp(404, 'horario_no_encontrado', 'Ese horario no existe.');
+      const antes = h.toJSON();
+      await h.destroy();
+      void registrar(actor, 'borrar', 'horario_fecha', params.id, antes, null);
+      return { ok: true };
+    },
+    { detail: { summary: 'Quitar ventana de fecha; la fecha vuelve a su horario semanal' } },
   );
 
 /* ------------------------------------------------------------- bloqueos */

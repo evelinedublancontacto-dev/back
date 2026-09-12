@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { calcularDisponibilidad, generarBloques, modalidadDelDia } from '../src/servicios/agenda';
+import { calcularDisponibilidad, generarBloques, modalidadDelDia, ventanasDelDia } from '../src/servicios/agenda';
 import { ahoraEnCDMX, diaSemana, esFechaISO, esHora } from '../src/servicios/fechas';
 
 const LUNES = '2026-10-05';
@@ -116,5 +116,46 @@ describe('modalidadDelDia', () => {
   it('basta una ventana presencial para que el día lo sea', () => {
     expect(modalidadDelDia([{ hora_inicio: '09:00', hora_fin: '12:00', modalidad: 'en_linea' }, { hora_inicio: '16:00', hora_fin: '18:00', modalidad: 'presencial' }])).toBe('presencial');
     expect(modalidadDelDia([])).toBeUndefined();
+  });
+});
+
+describe('ventanasDelDia', () => {
+  const SEMANAL = [{ hora_inicio: '16:00', hora_fin: '20:00' }];
+
+  it('sin excepciones rige el horario de la semana', () => {
+    expect(ventanasDelDia(SEMANAL, [])).toEqual(SEMANAL);
+  });
+
+  it('el horario de la fecha sustituye al de la semana, no se suma', () => {
+    /* El martes que se trabaja en la mañana en vez de la tarde. */
+    const esaFecha = [{ hora_inicio: '09:00', hora_fin: '13:00' }];
+    expect(ventanasDelDia(SEMANAL, esaFecha)).toEqual(esaFecha);
+  });
+
+  it('deja abrir un día que normalmente no se atiende', () => {
+    const puente = [{ hora_inicio: '09:00', hora_fin: '14:00' }, { hora_inicio: '18:00', hora_fin: '20:00' }];
+    expect(ventanasDelDia([], puente)).toEqual(puente);
+  });
+
+  it('el lunes del puente genera justo las horas que Eveline atiende', () => {
+    /* 9, 10, 12, 13, 18 y 19: dos ventanas, sin la hora de la comida. */
+    const puente = [{ hora_inicio: '09:00', hora_fin: '11:00' }, { hora_inicio: '12:00', hora_fin: '14:00' }, { hora_inicio: '18:00', hora_fin: '20:00' }];
+    const { slots } = calcularDisponibilidad({
+      fecha: LUNES,
+      horarios: ventanasDelDia(SEMANAL, puente),
+      bloqueos: [],
+      horasOcupadas: [],
+    });
+    expect(slots.map((s) => s.hora)).toEqual(['09:00', '10:00', '12:00', '13:00', '18:00', '19:00']);
+  });
+
+  it('un bloqueo sigue mandando sobre el horario de la fecha', () => {
+    const { slots } = calcularDisponibilidad({
+      fecha: LUNES,
+      horarios: ventanasDelDia([], [{ hora_inicio: '09:00', hora_fin: '12:00' }]),
+      bloqueos: [{ hora_inicio: '10:00', hora_fin: '11:00' }],
+      horasOcupadas: [],
+    });
+    expect(slots.map((s) => s.hora)).toEqual(['09:00', '11:00']);
   });
 });
