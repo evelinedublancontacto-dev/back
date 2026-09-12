@@ -39,18 +39,52 @@ export const ETIQUETA_MODALIDAD: Record<ModalidadAtencion, string> = {
   a_distancia: 'A distancia, asíncrona (no requiere conectarse)',
 };
 
-/** Cita viva (pendiente o confirmada) del cliente que todavía no ocurre.
-    Regla de Eveline: una persona solo puede tener una cita agendada a la
-    vez; la siguiente se agenda cuando esta se realice o se cancele. */
-export async function citaVivaPendiente(clienteId: string, ahora: { fecha: string; hora: string }) {
-  return Cita.findOne({
+/* ------------------------------------------------------------------ *
+ *  Una cita por persona a la vez (regla de Eveline). "La misma persona"
+ *  se reconoce por cualquiera de tres señales, para que no baste cambiar
+ *  una letra: el correo, el teléfono (solo dígitos, últimos diez, así da
+ *  igual +52, espacios o guiones) o el nombre (sin mayúsculas ni acentos).
+ * ------------------------------------------------------------------ */
+
+export type DatosPersona = { nombre: string; correo: string; telefono: string };
+
+export function normalizarNombre(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9ñ ]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/** Últimos diez dígitos; vacío si no alcanza para ser un teléfono. */
+export function normalizarTelefono(telefono: string): string {
+  const digitos = telefono.replace(/\D/g, '');
+  return digitos.length >= 7 ? digitos.slice(-10) : '';
+}
+
+export function mismaPersona(a: DatosPersona, b: DatosPersona): boolean {
+  if (a.correo.trim().toLowerCase() === b.correo.trim().toLowerCase()) return true;
+  const telA = normalizarTelefono(a.telefono);
+  if (telA && telA === normalizarTelefono(b.telefono)) return true;
+  const nomA = normalizarNombre(a.nombre);
+  return nomA.length > 0 && nomA === normalizarNombre(b.nombre);
+}
+
+/** Primera cita viva (pendiente o confirmada) por ocurrir de alguien que
+    coincida en correo, teléfono o nombre con quien intenta reservar. Las
+    citas vivas futuras son pocas, así que se comparan en memoria. */
+export async function citaVivaPendiente(persona: DatosPersona, ahora: { fecha: string; hora: string }) {
+  const vivas = await Cita.findAll({
     where: {
-      cliente_id: clienteId,
       estado: { [Op.in]: [...ESTADOS_VIVOS] },
       [Op.or]: [{ fecha: { [Op.gt]: ahora.fecha } }, { fecha: ahora.fecha, hora: { [Op.gt]: ahora.hora } }],
     },
+    include: [{ model: Cliente, as: 'cliente', attributes: ['nombre', 'correo', 'telefono'] }],
     order: [['fecha', 'ASC'], ['hora', 'ASC']],
   });
+  return vivas.find((c) => c.cliente && mismaPersona(persona, c.cliente)) ?? null;
 }
 
 function fechaLarga(fecha: string): string {
@@ -81,16 +115,19 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita
     throw new ErrorHttp(409, 'horario_ocupado', 'Ese horario acaba de ocuparse. Elija otro, por favor.');
   }
 
-  const cliente = await obtenerOCrearCliente({ nombre: d.nombre.trim(), correo: d.email, telefono: d.telefono.trim() });
-
-  const previa = await citaVivaPendiente(cliente.id, ahora);
+  /* Antes de crear o actualizar al cliente: un intento repetido no debe
+     pisar el nombre o teléfono guardados. */
+  const persona = { nombre: d.nombre.trim(), correo: d.email, telefono: d.telefono.trim() };
+  const previa = await citaVivaPendiente(persona, ahora);
   if (previa) {
     throw new ErrorHttp(
       409,
       'cita_ya_agendada',
-      `Ya tienes una cita agendada para el ${fechaLarga(previa.fecha)} a las ${previa.hora.slice(0, 5)}. Solo se puede tener una cita a la vez; cuando se realice o se cancele podrás agendar la siguiente.`,
+      `Ya hay una cita agendada con estos datos para el ${fechaLarga(previa.fecha)} a las ${previa.hora.slice(0, 5)}. Solo se puede tener una cita a la vez; cuando se realice o se cancele podrás agendar la siguiente.`,
     );
   }
+
+  const cliente = await obtenerOCrearCliente(persona);
 
   let cita: Cita;
   try {

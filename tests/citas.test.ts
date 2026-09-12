@@ -138,6 +138,14 @@ describe('POST /v1/citas', () => {
     expect(await Cita.count({ where: { fecha: FECHA } })).toBe(1);
   });
 
+  it('tampoco cambiando el correo si el teléfono o el nombre son los mismos', async () => {
+    const porTelefono = await reservar({ hora: '11:00', email: 'otro@ejemplo.test', nombre: 'Alguien Más', telefono: '+52 (771) 143-9116' });
+    expect(porTelefono.status).toBe(409);
+    const porNombre = await reservar({ hora: '11:00', email: 'otro2@ejemplo.test', telefono: '5512345678', nombre: 'PRUEBA CONCURRENCIA' });
+    expect(porNombre.status).toBe(409);
+    expect(await Cliente.count({ where: { correo: ['otro@ejemplo.test', 'otro2@ejemplo.test'] } })).toBe(0); // no se crean clientes fantasma
+  });
+
   it('un horario cancelado vuelve a quedar libre', async () => {
     const cita = await Cita.findOne({ where: { fecha: FECHA, hora: '10:00' } });
     await cita!.update({ estado: 'cancelada' });
