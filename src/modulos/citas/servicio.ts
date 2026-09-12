@@ -1,5 +1,6 @@
 import { Op, UniqueConstraintError } from 'sequelize';
-import { Cita, Cliente, Servicio, type Modalidad } from '../../modelos';
+import { Cita, Cliente, Servicio } from '../../modelos';
+import type { ModalidadAtencion } from '../../servicios/agenda';
 import { ESTADOS_VIVOS } from '../../modelos/Cita';
 import { ErrorHttp } from '../../errores';
 import { ahoraEnCDMX, esFechaISO, esHora } from '../../servicios/fechas';
@@ -32,9 +33,10 @@ export async function obtenerOCrearCliente(datos: { nombre: string; correo: stri
   }
 }
 
-export const ETIQUETA_MODALIDAD: Record<Modalidad, string> = {
+export const ETIQUETA_MODALIDAD: Record<ModalidadAtencion, string> = {
   presencial: 'Presencial, en consultorio',
   en_linea: 'En línea (videollamada)',
+  a_distancia: 'A distancia, asíncrona (no requiere conectarse)',
 };
 
 /** Cita viva (pendiente o confirmada) del cliente que todavía no ocurre.
@@ -56,7 +58,7 @@ function fechaLarga(fecha: string): string {
   return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, d)));
 }
 
-export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita; modalidad?: Modalidad }> {
+export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita; modalidad?: ModalidadAtencion }> {
   if (!esFechaISO(d.fecha)) throw new ErrorHttp(400, 'fecha_invalida', 'La fecha no es válida.');
   if (!esHora(d.hora)) throw new ErrorHttp(400, 'hora_invalida', 'La hora no es válida.');
 
@@ -115,7 +117,7 @@ export async function crearCitaPublica(d: CuerpoNuevaCita): Promise<{ cita: Cita
   return { cita, modalidad: disponibilidad.modalidad };
 }
 
-async function notificarReserva(cita: Cita, modalidad?: Modalidad) {
+async function notificarReserva(cita: Cita, modalidad?: ModalidadAtencion) {
   const c = cita.cliente!;
   const s = cita.servicio!;
   const cuando = `${cita.fecha} a las ${cita.hora} (hora del centro de México)`;

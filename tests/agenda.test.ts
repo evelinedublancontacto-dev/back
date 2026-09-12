@@ -100,6 +100,18 @@ describe('calcularDisponibilidad', () => {
   });
 });
 
+describe('modalidad fija del servicio', () => {
+  it('las velas son a distancia aunque el día sea presencial', () => {
+    const r = calcularDisponibilidad({ fecha: VIERNES, horarios: [{ hora_inicio: '09:00', hora_fin: '13:00', modalidad: 'presencial' }], bloqueos: [], horasOcupadas: [], reglas: { modalidad: 'a_distancia' } });
+    expect(r.modalidad).toBe('a_distancia');
+    expect(r.slots.length).toBe(4);
+  });
+  it("'ambas' o sin regla deja mandar al día", () => {
+    const r = calcularDisponibilidad({ fecha: VIERNES, horarios: [{ hora_inicio: '09:00', hora_fin: '13:00', modalidad: 'presencial' }], bloqueos: [], horasOcupadas: [], reglas: { modalidad: 'ambas' } });
+    expect(r.modalidad).toBe('presencial');
+  });
+});
+
 describe('modalidadDelDia', () => {
   it('basta una ventana presencial para que el día lo sea', () => {
     expect(modalidadDelDia([{ hora_inicio: '09:00', hora_fin: '12:00', modalidad: 'en_linea' }, { hora_inicio: '16:00', hora_fin: '18:00', modalidad: 'presencial' }])).toBe('presencial');

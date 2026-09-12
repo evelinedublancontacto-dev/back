@@ -56,6 +56,7 @@ describe('GET /v1/servicios', () => {
     const { servicios } = (await res.json()) as { servicios: Array<Record<string, unknown>> };
     expect(servicios.length).toBeGreaterThanOrEqual(4);
     expect(servicios.map((s) => s.id)).not.toContain('terapia-parejas'); // Eveline no lo ofrece
+    expect(servicios.map((s) => s.id)).toEqual(expect.arrayContaining(['sanacion-con-velas', 'sanacion-para-animales']));
     expect(servicios[0]).toMatchObject({ id: expect.any(String), titulo: expect.any(String), duracion: expect.any(Number), precio: expect.any(Number) });
   });
 });

@@ -19,7 +19,7 @@ const MODALIDAD = t.Union(MODALIDADES.map((m) => t.Literal(m)));
 const reglas = t.Optional(
   t.Object({
     dias_permitidos: t.Optional(t.Array(t.Integer({ minimum: 0, maximum: 6 }))),
-    modalidad: t.Optional(t.Union([t.Literal('presencial'), t.Literal('en_linea'), t.Literal('ambas')])),
+    modalidad: t.Optional(t.Union([t.Literal('presencial'), t.Literal('en_linea'), t.Literal('a_distancia'), t.Literal('ambas')])),
     mensaje_dias: t.Optional(t.String({ maxLength: 300 })),
   }),
 );

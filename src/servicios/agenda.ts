@@ -25,12 +25,15 @@ export type EntradaDisponibilidad = {
   ahora?: { fecha: string; hora: string };
 };
 
+/** Lo que ve el visitante: la del día (horarios) o la fija del servicio. */
+export type ModalidadAtencion = Modalidad | 'a_distancia';
+
 export type SalidaDisponibilidad = {
   fecha: string;
   slots: Bloque[];
   disponible: boolean;
-  /** Cómo se atiende ese día. Falta cuando el día no tiene ventanas. */
-  modalidad?: Modalidad;
+  /** Cómo se atiende. Falta cuando el día no tiene ventanas y el servicio no la fija. */
+  modalidad?: ModalidadAtencion;
   mensaje?: string;
 };
 
@@ -38,6 +41,13 @@ export type SalidaDisponibilidad = {
 export function modalidadDelDia(horarios: VentanaHorario[]): Modalidad | undefined {
   if (horarios.length === 0) return undefined;
   return horarios.some((h) => h.modalidad === 'presencial') ? 'presencial' : 'en_linea';
+}
+
+/** Un servicio con modalidad fija (p. ej. velas, siempre a distancia) gana al día. */
+export function modalidadAtencion(horarios: VentanaHorario[], reglas?: ReglasServicio): ModalidadAtencion | undefined {
+  const fija = reglas?.modalidad;
+  if (fija === 'presencial' || fija === 'en_linea' || fija === 'a_distancia') return fija;
+  return modalidadDelDia(horarios);
 }
 
 export function generarBloques(horarios: VentanaHorario[], intervaloMin = INTERVALO_MIN): string[] {
@@ -63,7 +73,7 @@ function bloqueadoPor(hora: string, intervaloMin: number, bloqueos: RangoBloqueo
 export function calcularDisponibilidad(e: EntradaDisponibilidad): SalidaDisponibilidad {
   const intervalo = e.intervaloMin ?? INTERVALO_MIN;
   const dia = diaSemana(e.fecha);
-  const modalidad = modalidadDelDia(e.horarios);
+  const modalidad = modalidadAtencion(e.horarios, e.reglas);
 
   const permitidos = e.reglas?.dias_permitidos;
   if (permitidos && permitidos.length > 0 && !permitidos.includes(dia)) {

@@ -4,7 +4,8 @@ import { sequelize } from '../db/sequelize';
 export type ReglasServicio = {
   /** Días de la semana permitidos (0 domingo … 6 sábado). Sin valor: todos. */
   dias_permitidos?: number[];
-  modalidad?: 'presencial' | 'en_linea' | 'ambas';
+  /** Fija la modalidad del servicio; sin valor o 'ambas', manda la del día. */
+  modalidad?: 'presencial' | 'en_linea' | 'a_distancia' | 'ambas';
   /** Texto que ve el visitante cuando elige un día no permitido. */
   mensaje_dias?: string;
 };
