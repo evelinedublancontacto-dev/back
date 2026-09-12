@@ -21,6 +21,8 @@ const C = {
   morado: '#7d34b2',
   moradoProfundo: '#61288a',
   fondoOscuro: '#1f1528',
+  /** Turquesa del logo (muestreado de eveline-logo.png). */
+  turquesa: '#20b0b8',
   dorado: '#d09d25',
   doradoClaro: '#ecbd51',
   fondo: '#faf9fb',
@@ -115,8 +117,8 @@ export function envolver(o: { titulo: string; preencabezado: string; cuerpo: str
             </td>
           </tr>
           <tr>
-            <td align="center" style="background:${C.fondoOscuro};padding:26px 32px;">
-              <p style="margin:0 0 8px;font-family:${FUENTE_TEXTO};font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:${C.doradoClaro};">${LEMA}</p>
+            <td align="center" style="background:${C.turquesa};padding:26px 32px;">
+              <p style="margin:0 0 8px;font-family:${FUENTE_TEXTO};font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:${C.fondoOscuro};">${LEMA}</p>
               <h1 style="margin:0;font-family:${FUENTE_TITULO};font-size:24px;line-height:1.3;font-weight:600;color:${C.blanco};">${escaparHtml(o.titulo)}</h1>
             </td>
           </tr>
